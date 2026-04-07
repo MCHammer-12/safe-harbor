@@ -28,9 +28,9 @@ INTEX W26 capstone project for IS 401 (PM), IS 413 (Dev), IS 414 (Security), IS 
 |-------|-----------|
 | Frontend | React + TypeScript + Vite |
 | Backend | .NET 10 / C# Web API |
-| Database | Azure SQL Database |
+| Database | Supabase PostgreSQL |
 | Auth | ASP.NET Identity |
-| Hosting | Microsoft Azure |
+| Hosting | Vercel |
 | ML | Python / Jupyter notebooks |
 | Version Control | GitHub |
 
@@ -48,10 +48,10 @@ INTEX W26 capstone project for IS 401 (PM), IS 413 (Dev), IS 414 (Security), IS 
 
 | Role | Name |
 |------|------|
-| Scrum Master | TBD |
-| Product Owner | TBD |
-| Member 3 | TBD |
-| Member 4 | TBD |
+| Scrum Master | Willard Richards |
+| Product Owner | Ethan Grundvig |
+| Member 3 | Brandon Woods |
+| Member 4 | Michael Hammer |
 
 ## Key Links
 
