@@ -4,6 +4,55 @@
 
 ---
 
+## 2026-04-07 -- Vercel deploy + full UI swap to Replit design (Michael)
+
+**What was done:**
+- **Vercel deployment**: imported repo on vercel.com, set Root Directory = `frontend`, added `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` env vars. Auto-deploy on `main` is live.
+- **Full frontend UI swap** to the Replit "elegant-interface-design" export (warm cream/burgundy theme, serif typography): new pages, shared header/footer/badge, wouter routing (replaced react-router-dom), `@/` path alias added to vite + tsconfig
+- **New `useSupabaseData.ts` hooks** with all 3 pages wired to live data:
+  - Impact: girls supported, active safehouses, donor count, reintegration outcome distribution
+  - Admin: active residents, 7-day donation total, avg education progress, safehouse occupancy
+  - Caseload: residents table with safehouse join and sub-category flag derivation
+- Empty arrays / em-dashes mark TODOs that still need a data source (weekly bar chart, recent activity feed, upcoming reviews)
+- Resolved merge conflicts with PRs #3/#4 (already merged to main) by deleting stale old-UI files and keeping the new UI
+- Created `.claude/launch.json` for `preview_start`; frontend dev server runs on port 5173
+- Created `vercel.json` (monorepo build config + SPA rewrites) — uncommitted, left for future use since dashboard settings are now working
+
+**Files changed:**
+- `frontend/src/App.tsx` (new, wouter)
+- `frontend/src/main.tsx` (simplified)
+- `frontend/src/index.css` (new warm theme design tokens)
+- `frontend/src/pages/{ImpactDashboard,AdminDashboard,CaseloadInventory,not-found}.tsx` (new)
+- `frontend/src/components/shared/{StaffHeader,PublicFooter,StatusBadge}.tsx` (new)
+- `frontend/src/hooks/useSupabaseData.ts` (new — replaces useImpactData.ts)
+- `frontend/src/lib/utils.ts` (new, cn helper)
+- `frontend/src/data/featuredStory.ts` (new)
+- `frontend/vite.config.ts` (@ alias)
+- `frontend/tsconfig.json` (paths, relaxed noUnused*)
+- `frontend/package.json` (added wouter, lucide-react, clsx, tailwind-merge, cva; dropped react-router-dom)
+- Deleted: old layout/, wireframe/, router.tsx, ImpactDashboardPage.tsx, HomePage.tsx, useImpactData.ts, types/impact.ts, types/resident.ts, mockResidents.ts
+- `.claude/launch.json` (new)
+- `vercel.json` (new, uncommitted)
+
+**Decisions made:**
+- Skipped copying the Replit shadcn `components/ui/` directory (55 files) and all Radix deps since new pages don't use them — kept bundle small
+- Dropped Tanstack Query and wrote a tiny `useAsync` helper in `useSupabaseData.ts` instead — saves the dep
+- Dropped `tw-animate-css` and `@tailwindcss/typography` imports from index.css to avoid adding deps
+- Used residents `internal_code` as both display name and ID (real names aren't in the schema — privacy by design)
+- `ResidentStatus` type now lives in `hooks/useSupabaseData.ts`; `StatusBadge` imports from there
+
+**PRs opened:**
+- PR #5 — claude/stoic-sutherland (full UI swap) — MERGEABLE, ready to merge
+
+**Next steps:**
+- Merge PR #5, confirm Vercel preview/prod deploy renders correctly
+- Wire remaining Admin TODOs (weekly activity, recent activity feed, upcoming reviews) once a data source is chosen
+- Begin .NET backend scaffolding (auth + admin CRUD)
+- Identity DB decision (separate Supabase schema vs separate project)
+- Continue Tuesday design deliverables
+
+---
+
 ## 2026-04-07 -- Supabase wiring + Impact Dashboard + Landing Page slices (Michael)
 
 **What was done:**

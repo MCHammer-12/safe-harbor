@@ -6,8 +6,9 @@ INTEX W26 capstone project for IS 401 (PM), IS 413 (Dev), IS 414 (Security), IS 
 
 ## Current Status
 
-**Phase:** Project setup / Day 1 (Monday Apr 6)
-**Sprint:** Monday -- Requirements
+**Phase:** Tuesday Apr 7 -- Design
+**Sprint:** Tuesday -- Design + first deployed page
+**Deployed:** Frontend on Vercel (auto-deploy on main), Supabase PostgreSQL seeded
 
 ### What exists
 - Project directory structure created
