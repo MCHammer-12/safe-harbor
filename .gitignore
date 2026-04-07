@@ -38,3 +38,9 @@ Thumbs.db
 *.key
 *.pfx
 secrets/
+
+# Tooling / local state
+.claude/
+.vite/
+supabase/.temp/
+supabase/.branches/

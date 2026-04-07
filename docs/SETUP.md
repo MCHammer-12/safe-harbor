@@ -58,6 +58,8 @@ jupyter notebook
 ### Frontend (`.env.local` -- DO NOT COMMIT)
 
 ```
+VITE_SUPABASE_URL=https://hfixzmwuqlrudcsslypz.supabase.co
+VITE_SUPABASE_ANON_KEY=<get from Supabase dashboard → Settings → API>
 VITE_API_URL=https://localhost:5001/api
 ```
 
@@ -84,12 +86,49 @@ npm run build
 # Deploy dist/ folder to Azure Static Web Apps or App Service
 ```
 
-## Database
+## Database (Supabase / Postgres)
 
-- 17 tables from provided CSVs
-- Place CSVs in `data/` directory
-- Seed script: TBD (create EF Core seed or SQL import script)
-- Identity DB is separate from operational DB
+The operational database is hosted on Supabase. All 17 tables are already created
+and seeded with the CSV data from `data/`.
+
+- **Project ref:** `hfixzmwuqlrudcsslypz`
+- **Project URL:** `https://hfixzmwuqlrudcsslypz.supabase.co`
+- **Dashboard:** https://supabase.com/dashboard/project/hfixzmwuqlrudcsslypz
+- **Schema source of truth:** `docs/schema.sql`
+- **Row counts:** ~8,093 rows across 17 tables (see `docs/SESSION-LOG.md`)
+
+### How teammates connect
+
+1. Get added to the Supabase org by Michael (request in Slack)
+2. Open the project dashboard → **Settings → API** → copy:
+   - Project URL → `VITE_SUPABASE_URL`
+   - `anon` `public` key → `VITE_SUPABASE_ANON_KEY`
+3. Create `frontend/.env.local` (see `frontend/.env.example`) and paste those two values
+4. `cd frontend && npm install && npm run dev`
+5. The DB password and personal access token are NOT needed for normal frontend dev — only for schema migrations or bulk loads
+
+### Sensitive credentials (NOT in repo)
+
+These live in 1Password / team Slack DM only:
+
+| Name | Used by | Where to get |
+|------|---------|--------------|
+| `SUPABASE_DB_PASSWORD` | Direct DB connection, migrations | Slack DM from Michael |
+| `SUPABASE_ACCESS_TOKEN` | Supabase CLI (`supabase link`) | https://supabase.com/dashboard/account/tokens |
+| `SUPABASE_ANON_KEY` | Frontend client (public, but not in repo) | Project Settings → API |
+
+### Re-running the schema
+
+```bash
+export SUPABASE_ACCESS_TOKEN=<your-pat>
+npx supabase link --project-ref hfixzmwuqlrudcsslypz
+npx supabase db query --linked -f docs/schema.sql
+```
+
+### Identity DB
+
+Identity DB is separate from operational DB (per IS 414 spec). TBD — likely a
+second Supabase project or a separate schema in this one.
 
 ## Grading Accounts
 
