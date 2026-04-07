@@ -1,6 +1,6 @@
 import StaffHeader from '@/components/shared/StaffHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
-import { useAdminKpis, useSafehouses } from '@/hooks/useSupabaseData';
+import { useAdminKpis, useSafehouses } from '@/hooks/useMockData';
 
 // Bar chart + recent activity not yet wired — empty until we have a data source.
 const barHeights: number[] = [];

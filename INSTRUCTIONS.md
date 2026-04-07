@@ -8,8 +8,8 @@
 
 **Safe Harbor** is a nonprofit web application for an organization that operates safe homes for girls who are survivors of sexual abuse and sex trafficking in the Philippines. It manages three domains: donor/support, case management, and social media outreach.
 
-- **Tech Stack:** .NET 10 / C# (backend), React / TypeScript with Vite (frontend), Supabase PostgreSQL (primary DB), ASP.NET Identity (auth)
-- **Deploy Target:** Vercel
+- **Tech Stack:** .NET 10 / C# (backend), React / TypeScript with Vite (frontend), Azure SQL Database (primary DB), ASP.NET Identity (auth)
+- **Deploy Target:** Azure (App Service / Static Web Apps)
 - **Due:** Friday April 10, 2026 at 10:00 AM
 - **Presentation:** Friday April 10 starting at 12:00 PM (20 min + 5 min Q&A)
 

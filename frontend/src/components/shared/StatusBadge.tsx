@@ -1,4 +1,4 @@
-import type { ResidentStatus } from '@/hooks/useSupabaseData';
+import type { ResidentStatus } from '@/hooks/useMockData';
 
 interface StatusBadgeProps {
   status: ResidentStatus;

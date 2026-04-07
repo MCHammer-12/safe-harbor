@@ -1,7 +1,7 @@
 import StaffHeader from '@/components/shared/StaffHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import StatusBadge from '@/components/shared/StatusBadge';
-import { useResidents } from '@/hooks/useSupabaseData';
+import { useResidents } from '@/hooks/useMockData';
 import { Search, Filter, MapPin, Tag } from 'lucide-react';
 
 export default function CaseloadInventoryPage() {
