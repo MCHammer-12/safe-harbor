@@ -98,7 +98,8 @@ test: add unit tests for resident API
 - Pull from `main` before starting new work: `git pull origin main`
 - Rebase your branch on `main` before opening a PR: `git rebase main`
 - If two people must touch the same file, communicate first
-- Shared files (routes, `App.tsx`, `MainAppController.cs`, `MainAppDbContext`) -- coordinate changes in team chat
+- Shared files (routes, `App.tsx`, `MainAppDbContext`) -- coordinate changes in team chat
+- **Parallel AI agents**: if you're running multiple Claude Code windows in parallel on different branches, give each one its own `git worktree add .claude/worktrees/<name>` directory. Do NOT have multiple parallel agents share one working directory — concurrent `git checkout` calls will race and one branch will end up with another's files. We learned this the hard way on 2026-04-07 (see `docs/DECISIONS.md`).
 
 ## Project Structure
 
