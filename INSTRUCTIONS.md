@@ -28,7 +28,8 @@
 1. Read `docs/CONTEXT.md` for current project state
 2. Read the last 3-5 entries of `docs/SESSION-LOG.md`
 3. Check `plans/` for any active plans relevant to your work
-4. Summarize what you see and ask what to work on
+4. Run `git fetch origin main` and merge `origin/main` into the current branch (fast-forward if possible; if it can't merge cleanly, stop and surface the conflict before doing anything else)
+5. Summarize what you see and ask what to work on
 
 ### Ending a session
 
