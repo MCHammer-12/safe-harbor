@@ -13,18 +13,14 @@ builder.Services.AddDbContext<MainAppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("MainAppDbConnection")));
 
-const string FrontendCorsPolicy = "FrontendCorsPolicy";
+// Add CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(FrontendCorsPolicy, policy =>
+    options.AddPolicy("AllowReactApp", policy =>
     {
-        policy
-            .WithOrigins(
-                "http://localhost:5173",
-                "https://safe-harbor.vercel.app"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
@@ -41,6 +37,9 @@ else
 }
 
 app.UseCors(FrontendCorsPolicy);
+
+// Apply CORS
+app.UseCors("AllowReactApp");
 
 app.UseAuthorization();
 

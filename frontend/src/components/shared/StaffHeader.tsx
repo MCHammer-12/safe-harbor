@@ -1,6 +1,8 @@
 import { Link, useLocation } from 'wouter';
 
 const navLinks = [
+  { to: '/impact', label: 'Impact' },
+  { to: '/donor', label: 'Donor' },
   { to: '/admin', label: 'Admin' },
   { to: '/caseload', label: 'Caseload' },
   { to: '/donors', label: 'Donors' },
