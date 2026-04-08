@@ -3,6 +3,7 @@ import NotFound from '@/pages/not-found';
 import ImpactDashboardPage from '@/pages/ImpactDashboard';
 import AdminDashboardPage from '@/pages/AdminDashboard';
 import CaseloadInventoryPage from '@/pages/CaseloadInventory';
+import DonorDashboardPage from '@/pages/DonorDashboard';
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
         <Redirect to="/impact" />
       </Route>
       <Route path="/impact" component={ImpactDashboardPage} />
+      <Route path="/donor" component={DonorDashboardPage} />
       <Route path="/admin" component={AdminDashboardPage} />
       <Route path="/caseload" component={CaseloadInventoryPage} />
       <Route component={NotFound} />
