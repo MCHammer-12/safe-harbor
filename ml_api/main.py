@@ -11,6 +11,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -70,7 +71,7 @@ AZURE_BLOB_PREFIX = os.environ.get("AZURE_BLOB_PREFIX", "models/latest").strip()
 
 app = FastAPI(title="Safe Harbor ML API", version="0.1.0")
 
-_models: dict[str, object] = {}
+_models: dict[str, Any] = {}
 _bundle_feature_cols: dict[str, list[str]] = {}
 _model_versions: dict[str, str] = {}
 logger = logging.getLogger("safe_harbor.ml_api")
