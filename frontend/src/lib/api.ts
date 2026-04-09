@@ -28,6 +28,7 @@ export interface ApiResult<T> {
 export async function apiGet<T>(path: string): Promise<ApiResult<T>> {
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
+      credentials: 'include',
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) {
@@ -57,6 +58,7 @@ export async function apiPost<TRequest, TResponse>(
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -90,6 +92,7 @@ export async function apiPut<TRequest, TResponse>(
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',

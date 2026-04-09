@@ -156,6 +156,7 @@ export function useVisitMutations() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/VisitationLogs/visits/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       if (!res.ok) return { data: null, error: `HTTP ${res.status}` };
       return { data: true, error: null };

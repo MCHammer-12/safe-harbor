@@ -124,6 +124,7 @@ export function useCaseloadMutations() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/CaseloadInventory/residents/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
         headers: { Accept: 'application/json' },
       });
       setSaving(false);

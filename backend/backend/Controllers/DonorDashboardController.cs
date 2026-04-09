@@ -1,5 +1,6 @@
 using backend.Models;
 using backend.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,7 @@ namespace backend.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize(Roles = AuthRoles.Donor)]
 public class DonorDashboard : ControllerBase
 {
     private readonly MainAppDbContext _context;
