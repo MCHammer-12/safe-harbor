@@ -151,6 +151,32 @@ public class DonationsController : ControllerBase
         return Ok(rows);
     }
 
+    [HttpGet("by-program-area/supporter/{supporterId:int}")]
+    public async Task<ActionResult<IEnumerable<ProgramAreaTotalDto>>> GetByProgramAreaForSupporter(int supporterId)
+    {
+        var raw = await _context.DonationAllocations
+            .AsNoTracking()
+            .Join(
+                _context.Donations.AsNoTracking().Where(d => d.SupporterId == supporterId),
+                a => a.DonationId,
+                d => d.DonationId,
+                (a, d) => new { a.ProgramArea, a.AmountAllocated, d.CurrencyCode })
+            .ToListAsync();
+
+        var rows = raw
+            .GroupBy(x => x.ProgramArea)
+            .Select(g => new ProgramAreaTotalDto
+            {
+                ProgramArea = g.Key,
+                Total = g.Sum(x => CurrencyToPhp.Convert(x.AmountAllocated, x.CurrencyCode)),
+                Count = g.Count(),
+            })
+            .OrderByDescending(r => r.Total)
+            .ToList();
+
+        return Ok(rows);
+    }
+
     /// <summary>
     /// Full donation detail for a supporter (allocations + in-kind lines). Verifies supporter ownership.
     /// </summary>

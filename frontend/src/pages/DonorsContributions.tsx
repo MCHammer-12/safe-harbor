@@ -6,6 +6,7 @@ import {
   useSupporterDetail,
   useRecentDonations,
   useDonationsByProgramArea,
+  useDonationsByProgramAreaForSupporter,
   type SupporterListItem,
   type DonationRecord,
 } from '@/hooks/useDonors';
@@ -381,6 +382,7 @@ export default function DonorsContributionsPage() {
   const detail = useSupporterDetail(selectedId, donationRefreshToken);
   const recent = useRecentDonations(30, donationRefreshToken);
   const programAreas = useDonationsByProgramArea(donationRefreshToken);
+  const programAreasForSelected = useDonationsByProgramAreaForSupporter(selectedId, donationRefreshToken);
 
   const kpis = useMemo(() => {
     const totalSupporters = supporters.data?.total ?? 0;
@@ -1100,28 +1102,65 @@ export default function DonorsContributionsPage() {
 
         {/* Program area breakdown */}
         <section className="mt-8 bg-card border border-border rounded-lg p-5">
-          <h2 className="font-serif text-xl text-foreground mb-4">
-            Allocations by program area
-          </h2>
+          <div className="flex items-baseline justify-between mb-1 gap-3 flex-wrap">
+            <h2 className="font-serif text-xl text-foreground">
+              Allocations by program area
+              {selectedSupporter && (
+                <span className="text-base text-muted-foreground font-sans font-normal">
+                  {' — '}
+                  {selectedSupporter.displayName}
+                </span>
+              )}
+            </h2>
+            {selectedSupporter && (
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                className="text-xs px-3 py-1 rounded-full border border-border text-foreground hover:bg-background"
+              >
+                Show all donors
+              </button>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Amounts shown in PHP using the same reference conversion rates as supporter totals
-            (donation currency → PHP).
+            {selectedSupporter
+              ? "This donor's allocations overlaid on the organization-wide totals (faded). Bars share the same scale."
+              : 'Amounts shown in PHP using the same reference conversion rates as supporter totals (donation currency → PHP).'}
           </p>
           <div className="space-y-2">
             {programAreas.data?.map((pa) => {
               const max = programAreas.data?.[0]?.total ?? 1;
-              const pct = Math.round((pa.total / max) * 100);
+              const totalPct = Math.round((pa.total / max) * 100);
+              const donorAmount = selectedSupporter
+                ? programAreasForSelected.data?.find((d) => d.programArea === pa.programArea)?.total ?? 0
+                : 0;
+              const donorPct = selectedSupporter ? Math.round((donorAmount / max) * 100) : 0;
               return (
                 <div key={pa.programArea}>
                   <div className="flex justify-between text-sm text-foreground">
                     <span>{pa.programArea}</span>
-                    <span>{formatPhp(pa.total)}</span>
+                    <span>
+                      {selectedSupporter ? (
+                        <>
+                          <span className="text-foreground">{formatPhp(donorAmount)}</span>
+                          <span className="text-muted-foreground"> / {formatPhp(pa.total)}</span>
+                        </>
+                      ) : (
+                        formatPhp(pa.total)
+                      )}
+                    </span>
                   </div>
-                  <div className="h-2 rounded bg-muted overflow-hidden">
+                  <div className="relative h-2 rounded bg-muted overflow-hidden">
                     <div
-                      className="h-full bg-primary"
-                      style={{ width: `${pct}%` }}
+                      className={`absolute inset-y-0 left-0 h-full bg-primary transition-opacity ${selectedSupporter ? 'opacity-20' : 'opacity-100'}`}
+                      style={{ width: `${totalPct}%` }}
                     />
+                    {selectedSupporter && (
+                      <div
+                        className="absolute inset-y-0 left-0 h-full bg-primary"
+                        style={{ width: `${donorPct}%` }}
+                      />
+                    )}
                   </div>
                 </div>
               );
