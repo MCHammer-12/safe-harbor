@@ -15,7 +15,14 @@ from pathlib import Path
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-_REPO_ROOT = Path(__file__).resolve().parents[1]
+# Repo layout: ml_api/main.py -> ml_service lives at repo root (parent of ml_api).
+# Azure zip deploy (flat wwwroot): main.py and ml_service/ sit together under wwwroot.
+_this_file = Path(__file__).resolve()
+_this_dir = _this_file.parent
+if (_this_dir / "ml_service").is_dir():
+    _REPO_ROOT = _this_dir
+else:
+    _REPO_ROOT = _this_dir.parent
 if str(_REPO_ROOT / "ml_service") not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT / "ml_service"))
 
