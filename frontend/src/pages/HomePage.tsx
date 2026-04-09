@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import PublicHeader from '@/components/shared/PublicHeader';
+import AppHeader from '@/components/shared/AppHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import { useHomepageStats } from '@/hooks/usePublicImpact';
 
@@ -41,7 +41,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <PublicHeader />
+      
 
       <main className="flex-1">
         <section

@@ -52,6 +52,7 @@ All access decisions MUST be enforced on the backend using role-based authorizat
 | Landing Page | ✅ | ✅ | ✅ | ✅ |
 | Reports / Analytics | ✅ | ✅ | ❌ | ❌ |
 | Privacy Policy / Cookies | ✅ | ✅ | ✅ | ✅ |
+| Social Media Posts Page| ✅ | ❌ | ❌ | ❌ |
 
 ---
 

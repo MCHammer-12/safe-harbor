@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import StaffHeader from '@/components/shared/StaffHeader';
+import AppHeader from '@/components/shared/AppHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import {
   useResidentsForPicker,
@@ -38,7 +38,6 @@ export default function ProcessRecordingPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <StaffHeader />
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
         <div className="flex items-start justify-between mb-8">
               <div>

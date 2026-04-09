@@ -1,4 +1,4 @@
-import PublicHeader from '@/components/shared/PublicHeader';
+import AppHeader from '@/components/shared/AppHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import { featuredStory, restorationStories } from '@/data/featuredStory';
 import {
@@ -45,7 +45,7 @@ export default function ImpactDashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader />
+      
 
       {/* Hero Section */}
       <section

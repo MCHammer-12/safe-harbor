@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Filter, Repeat, HandCoins, X } from 'lucide-react';
-import StaffHeader from '@/components/shared/StaffHeader';
+import AppHeader from '@/components/shared/AppHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import { apiGet, apiPost } from '@/lib/api';
 import type {
@@ -342,7 +342,7 @@ export default function DonorDashboardPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <StaffHeader />
+      
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-12 lg:py-16">
         <div className="mb-10 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
