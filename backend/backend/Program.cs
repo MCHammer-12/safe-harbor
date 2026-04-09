@@ -109,11 +109,11 @@ else
     app.UseHsts();
 }
 
+app.UseCors(FrontendCorsPolicy);
+
 app.UseHttpsRedirection();
 
 app.UseSecurityHeaders();
-
-app.UseCors(FrontendCorsPolicy);
 
 app.Use(async (context, next) =>
 {
