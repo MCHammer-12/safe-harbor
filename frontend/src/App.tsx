@@ -1,4 +1,4 @@
-import { Switch, Route } from 'wouter';
+import { Routes, Route } from 'react-router-dom';
 import NotFound from '@/pages/not-found';
 import HomePage from '@/pages/HomePage';
 import ImpactDashboardPage from '@/pages/ImpactDashboard';
@@ -7,18 +7,31 @@ import CaseloadInventoryPage from '@/pages/CaseloadInventory';
 import DonorDashboardPage from '@/pages/DonorDashboard';
 import DonorsContributionsPage from '@/pages/DonorsContributions';
 import ProcessRecordingPage from '@/pages/ProcessRecording';
+import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage';
+import LoginPage from '@/pages/LoginPage';
+import RegisterPage from '@/pages/RegisterPage';
+import CookieBanner from '@/components/shared/CookieBanner';
+import LogoutPage from '@/pages/LogoutPage';
 
 export default function App() {
   return (
-    <Switch>
-      <Route path="/" component={HomePage} />
-      <Route path="/impact" component={ImpactDashboardPage} />
-      <Route path="/donor" component={DonorDashboardPage} />
-      <Route path="/admin" component={AdminDashboardPage} />
-      <Route path="/caseload" component={CaseloadInventoryPage} />
-      <Route path="/donors" component={DonorsContributionsPage} />
-      <Route path="/process-recordings" component={ProcessRecordingPage} />
-      <Route component={NotFound} />
-    </Switch>
+    <>
+      <CookieBanner />
+
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/impact" element={<ImpactDashboardPage />} />
+        <Route path="/donor" element={<DonorDashboardPage />} />
+        <Route path="/admin" element={<AdminDashboardPage />} />
+        <Route path="/caseload" element={<CaseloadInventoryPage />} />
+        <Route path="/donors" element={<DonorsContributionsPage />} />
+        <Route path="/process-recordings" element={<ProcessRecordingPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/logout" element={<LogoutPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }

@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function PublicFooter() {
   return (
     <footer className="bg-white border-t border-border mt-20">
@@ -10,7 +12,7 @@ export default function PublicFooter() {
             A sanctuary for those finding their voice. We believe in restorative care, dignity, and endless hope.
           </p>
         </div>
-        
+
         <nav aria-label="Footer navigation">
           <ul className="flex gap-8 text-base font-medium text-foreground/80">
             <li>
@@ -18,11 +20,14 @@ export default function PublicFooter() {
                 Our Mission
               </a>
             </li>
+
+            {/* ✅ THIS IS THE IMPORTANT CHANGE */}
             <li>
-              <a href="#" className="hover:text-primary transition-colors">
-                Privacy
-              </a>
+              <Link to="/privacy" className="hover:text-primary transition-colors">
+                Privacy Policy
+              </Link>
             </li>
+
             <li>
               <a href="#" className="hover:text-primary transition-colors">
                 Contact
@@ -30,7 +35,10 @@ export default function PublicFooter() {
             </li>
           </ul>
         </nav>
-        <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Safe Harbor. Built with care.</p>
+
+        <p className="text-sm text-muted-foreground">
+          © {new Date().getFullYear()} Safe Harbor. Built with care.
+        </p>
       </div>
     </footer>
   );
