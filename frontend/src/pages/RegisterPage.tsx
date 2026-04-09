@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { registerUser } from '@/lib/AuthApi';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectParam = new URLSearchParams(location.search).get('redirect');
+  const safeRedirect = redirectParam && redirectParam.startsWith('/') ? redirectParam : '/';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,7 +30,7 @@ export default function RegisterPage() {
     try {
       await registerUser(email, password);
       setSuccessMessage('Registration succeeded. You can log in now.');
-      setTimeout(() => navigate('/login'), 800);
+      setTimeout(() => navigate(`/login?redirect=${encodeURIComponent(safeRedirect)}`), 800);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : 'Unable to register.'
@@ -110,7 +113,7 @@ export default function RegisterPage() {
 
       <p className="mt-4 text-sm">
         Already have an account?{' '}
-        <Link to="/login" className="underline">
+        <Link to={`/login?redirect=${encodeURIComponent(safeRedirect)}`} className="underline">
           Log in
         </Link>
       </p>
