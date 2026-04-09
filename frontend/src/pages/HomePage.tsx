@@ -1,4 +1,4 @@
-import { Link } from 'wouter';
+import { Link } from 'react-router-dom';
 import PublicHeader from '@/components/shared/PublicHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import { useHomepageStats } from '@/hooks/usePublicImpact';
@@ -33,12 +33,12 @@ export default function HomePage() {
             >
               Donate
             </a>
-            <Link href="/impact">
+            <Link to="/impact">
               <span className="px-6 py-3 rounded-full border border-foreground/20 text-foreground font-medium hover:bg-foreground/5 transition-colors cursor-pointer">
                 Read our impact
               </span>
             </Link>
-            <Link href="/admin">
+            <Link to="/admin">
               <span className="px-6 py-3 rounded-full text-foreground/80 font-medium hover:text-foreground transition-colors cursor-pointer">
                 Staff login
               </span>
