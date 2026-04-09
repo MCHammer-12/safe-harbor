@@ -129,4 +129,4 @@ jobs:
           pip install -e ml_service
 
       - name: Run FastAPI contract tests
-        run: pytest -q ml_api/tests
+        run: PYTHONPATH=. pytest -q ml_api/tests
