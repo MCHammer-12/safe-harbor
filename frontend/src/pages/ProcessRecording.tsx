@@ -39,7 +39,7 @@ export default function ProcessRecordingPage() {
       <StaffHeader />
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10">
         <div className="flex items-start justify-between mb-8">
-          <div>
+              <div>
             <h1 className="text-4xl font-serif text-foreground mb-2">Process Recording</h1>
             <p className="text-muted-foreground">
               Counseling session notes and chronological history per resident.
@@ -333,14 +333,14 @@ function NewEntryModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-foreground/35 backdrop-blur-[2px] flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-foreground/35 backdrop-blur-[2px] flex items-center justify-center p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-3xl max-h-[90svh] overflow-y-auto rounded-3xl border border-border bg-white shadow-xl"
+        className="w-full h-[100svh] sm:h-auto sm:max-w-3xl sm:max-h-[90svh] overflow-hidden sm:overflow-y-auto rounded-none sm:rounded-3xl border border-border bg-white shadow-xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-border px-4 sm:px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-serif text-foreground">New Process Recording</h2>
             <p className="text-xs text-muted-foreground mt-1">
@@ -357,11 +357,12 @@ function NewEntryModal({
           </button>
         </div>
 
-        <div className="px-6 py-5">
-          {error ? <p className="text-xs text-destructive mb-3">{error}</p> : null}
+        <form onSubmit={onSubmit} className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5">
+            {error ? <p className="text-xs text-destructive mb-3">{error}</p> : null}
 
-          <form className="space-y-3" onSubmit={onSubmit}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs uppercase tracking-wide text-muted-foreground">Resident</label>
               <select
@@ -385,9 +386,9 @@ function NewEntryModal({
                 onChange={(e) => setSessionDate(e.target.value)}
               />
             </div>
-          </div>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs uppercase tracking-wide text-muted-foreground">Social worker</label>
               <input
@@ -408,9 +409,9 @@ function NewEntryModal({
                 <option value="Group">Group</option>
               </select>
             </div>
-          </div>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-xs uppercase tracking-wide text-muted-foreground">Duration (min)</label>
               <input
@@ -449,7 +450,7 @@ function NewEntryModal({
                 ))}
               </select>
             </div>
-          </div>
+              </div>
 
           <div>
             <label className="text-xs uppercase tracking-wide text-muted-foreground">Session narrative</label>
@@ -459,8 +460,8 @@ function NewEntryModal({
               value={sessionNarrative}
               onChange={(e) => setSessionNarrative(e.target.value)}
             />
-          </div>
-          <div>
+              </div>
+              <div>
             <label className="text-xs uppercase tracking-wide text-muted-foreground">Interventions applied</label>
             <textarea
               rows={2}
@@ -469,8 +470,8 @@ function NewEntryModal({
               onChange={(e) => setInterventionsApplied(e.target.value)}
               placeholder="e.g., CBT; grounding; art therapy"
             />
-          </div>
-          <div>
+              </div>
+              <div>
             <label className="text-xs uppercase tracking-wide text-muted-foreground">Follow up actions</label>
             <textarea
               rows={2}
@@ -478,9 +479,9 @@ function NewEntryModal({
               value={followUpActions}
               onChange={(e) => setFollowUpActions(e.target.value)}
             />
-          </div>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
             <label className="flex items-center gap-2 text-sm text-foreground">
               <input
                 type="checkbox"
@@ -508,9 +509,9 @@ function NewEntryModal({
               />
               Referral made
             </label>
-          </div>
+              </div>
 
-          <div>
+              <div>
             <label className="text-xs uppercase tracking-wide text-muted-foreground">Notes restricted (optional)</label>
             <textarea
               rows={2}
@@ -519,9 +520,12 @@ function NewEntryModal({
               onChange={(e) => setNotesRestricted(e.target.value)}
               placeholder="Restricted-access notes…"
             />
+              </div>
+
+            </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="sticky bottom-0 bg-white border-t border-border px-4 sm:px-6 py-4 flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
@@ -539,8 +543,7 @@ function NewEntryModal({
               {saving ? 'Saving…' : 'Save'}
             </button>
           </div>
-          </form>
-        </div>
+        </form>
       </div>
     </div>
   );
