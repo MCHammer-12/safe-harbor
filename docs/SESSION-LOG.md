@@ -4,6 +4,55 @@
 
 ---
 
+## 2026-04-09 -- ML UX polish, social insights fallback, tooltip standardization (Brandon)
+
+**What was done:**
+- Resolved multiple UX and routing issues across ML surfaces:
+  - Removed broken staff nav link `/social` and kept `/social-media`
+  - Added/updated 9th-grade explanations for ML sections (donors/caseload/social)
+  - Added consistent `?` explainer tooltips for key ML metrics
+- Added sorting + pagination behavior:
+  - Caseload ML tables: sorted and paginated in sets of 10
+  - Donor churn: highest churn first, paginated by 10, with total-aware page display
+- Added USD conversion hover tooltips for PHP values and standardized tooltip presentation
+  - Introduced shared `InlineHoverTooltip`
+  - Added shared `QuestionTooltip` and replaced duplicated inline tooltip implementations
+- Implemented social-media fallback analytics when predictive output is empty:
+  - New backend endpoint `GET /api/SocialMedia/insights-summary`
+  - New frontend hook/types/panel to show actionable historical strategy insights
+    (best platform, best content type, best posting time, recommended posting frequency)
+- Fixed backend donor high-value default snapshot month logic:
+  - `GetDonorHighValueScoresCore` now defaults `asOf` to latest donation month in DB (not current date)
+- Added `PR_DESCRIPTION_TEMPLATE.md` and pre-filled it with this session’s summary/checklist/testing guidance.
+
+**Files changed (high level):**
+- Backend:
+  - `backend/backend/Controllers/MlController.cs`
+  - `backend/backend/Controllers/SocialMediaController.cs`
+- Frontend:
+  - `frontend/src/pages/{SocialMediaDashboard,DonorsContributions,AdminDashboard,ReportsAnalytics,ImpactDashboard,ProcessRecording}.tsx`
+  - `frontend/src/components/ml/{MlDonorChurnPanel,MlResidentWellbeingPanel,MlEarlyWarningPanel,MlReintegrationReadinessPanel,MlSocialPipelinePanel,MlSocialEngagementForecastPanel}.tsx`
+  - `frontend/src/components/social/SocialInsightsPanel.tsx` (new)
+  - `frontend/src/components/shared/{InlineHoverTooltip,QuestionTooltip}.tsx` (`QuestionTooltip` new)
+  - `frontend/src/hooks/useSocialInsightsSummary.ts` (new)
+  - `frontend/src/types/socialInsights.ts` (new)
+  - `frontend/src/lib/currencyPhp.ts`
+- Docs/template:
+  - `PR_DESCRIPTION_TEMPLATE.md`
+  - `docs/SESSION-LOG.md`
+
+**Verification:**
+- `npm run build` passes
+- Lint diagnostics on touched frontend files show no errors
+- Local runtime verified for backend + frontend + ml_api
+- Backend compile for changed code validated through `dotnet run`; standalone `dotnet build` can fail while app is running due file lock
+
+**Deployment note:**
+- Predictive `/api/Ml/*` endpoints in production still require a separately hosted FastAPI service and backend env var `Ml__BaseUrl` set to that service URL.
+- Historical social insights endpoint runs fully on .NET + SQL and can work without external FastAPI.
+
+---
+
 ## 2026-04-08 -- IS 455 ML deployment (shared ml_service, FastAPI, .NET proxy, UI)
 
 **What was done:**
