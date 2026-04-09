@@ -4,14 +4,23 @@ import { useAuth } from '@/context/AuthContext';
 import { logoutUser } from '@/lib/AuthApi';
 import LogoMark from '@/components/shared/LogoMark';
 
-type NavLinkItem = {
+type NavLeaf = {
+  kind: 'link';
   to: string;
   label: string;
 };
 
-const publicLinks: NavLinkItem[] = [
-  { to: '/', label: 'Home' },
-  { to: '/impact', label: 'Impact' },
+type NavGroup = {
+  kind: 'group';
+  label: string;
+  children: NavLeaf[];
+};
+
+type NavItem = NavLeaf | NavGroup;
+
+const publicItems: NavItem[] = [
+  { kind: 'link', to: '/', label: 'Home' },
+  { kind: 'link', to: '/impact', label: 'Impact' },
 ];
 
 export default function AppHeader() {
@@ -19,6 +28,8 @@ export default function AppHeader() {
   const navigate = useNavigate();
   const { authSession, isAuthenticated, isLoading, refreshAuthState } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const [openMobileGroup, setOpenMobileGroup] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const roles = authSession.roles ?? [];
@@ -36,41 +47,59 @@ export default function AppHeader() {
     }
   }
 
-  const roleLinks: NavLinkItem[] = [];
+  const roleItems: NavItem[] = [];
 
   if (isAdmin) {
-    roleLinks.push(
-      { to: '/admin', label: 'Admin' },
-      { to: '/caseload', label: 'Caseload' },
-      { to: '/process-recordings', label: 'Process Recordings' },
-      { to: '/visitation-logs', label: 'Visitation Logs' },
-      { to: '/reports', label: 'Reports' },
-      { to: '/donors', label: 'Donor Contributions' },
-      { to: '/social-media', label: 'Social Media' }
+    roleItems.push(
+      { kind: 'link', to: '/admin', label: 'Dashboard' },
+      {
+        kind: 'group',
+        label: 'Case Management',
+        children: [
+          { kind: 'link', to: '/caseload', label: 'Caseload' },
+          { kind: 'link', to: '/process-recordings', label: 'Process Recordings' },
+          { kind: 'link', to: '/visitation-logs', label: 'Visitation Logs' },
+        ],
+      },
+      {
+        kind: 'group',
+        label: 'Fundraising',
+        children: [
+          { kind: 'link', to: '/donors', label: 'Donor Contributions' },
+          { kind: 'link', to: '/social-media', label: 'Social Media' },
+          { kind: 'link', to: '/reports', label: 'Reports' },
+        ],
+      }
     );
   }
 
   if (isDonor) {
-    roleLinks.push({ to: '/donor', label: 'My Dashboard' });
+    roleItems.push({ kind: 'link', to: '/donor', label: 'My Dashboard' });
   }
 
-  const navLinks = [...publicLinks, ...roleLinks];
+  const navItems: NavItem[] = [...publicItems, ...roleItems];
 
   // Close menu on route change
   useEffect(() => {
     setMenuOpen(false);
+    setOpenGroup(null);
+    setOpenMobileGroup(null);
   }, [pathname]);
 
   // Close on outside click / Escape
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !openGroup) return;
     function onClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
+        setOpenGroup(null);
       }
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        setOpenGroup(null);
+      }
     }
     document.addEventListener('mousedown', onClick);
     document.addEventListener('keydown', onKey);
@@ -78,44 +107,179 @@ export default function AppHeader() {
       document.removeEventListener('mousedown', onClick);
       document.removeEventListener('keydown', onKey);
     };
-  }, [menuOpen]);
+  }, [menuOpen, openGroup]);
 
-  function renderNavLink({ to, label }: NavLinkItem, variant: 'desktop' | 'mobile') {
-    const isActive = pathname === to;
-    if (variant === 'desktop') {
-      return (
-        <li key={to}>
-          <Link to={to}>
+  function isLinkActive(to: string) {
+    return pathname === to;
+  }
+
+  function isGroupActive(group: NavGroup) {
+    return group.children.some((c) => isLinkActive(c.to));
+  }
+
+  function renderDesktopLeaf(item: NavLeaf) {
+    const active = isLinkActive(item.to);
+    return (
+      <li key={item.to}>
+        <Link to={item.to}>
+          <span
+            className={`text-base xl:text-lg font-medium cursor-pointer transition-colors relative py-1 whitespace-nowrap ${
+              active ? 'text-primary' : 'text-foreground/70 hover:text-foreground'
+            }`}
+          >
+            {item.label}
+            {active && (
+              <span
+                className="absolute left-0 right-0 -bottom-1 h-[2px] bg-primary rounded-full"
+                aria-hidden="true"
+              />
+            )}
+          </span>
+        </Link>
+      </li>
+    );
+  }
+
+  function renderDesktopGroup(group: NavGroup) {
+    const open = openGroup === group.label;
+    const active = isGroupActive(group);
+    return (
+      <li key={group.label} className="relative">
+        <button
+          type="button"
+          aria-haspopup="true"
+          aria-expanded={open}
+          onClick={() => setOpenGroup(open ? null : group.label)}
+          className={`inline-flex items-center gap-1 text-base xl:text-lg font-medium cursor-pointer transition-colors relative py-1 whitespace-nowrap ${
+            active || open ? 'text-primary' : 'text-foreground/70 hover:text-foreground'
+          }`}
+        >
+          {group.label}
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`transition-transform ${open ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+          {active && !open && (
             <span
-              className={`text-base xl:text-lg font-medium cursor-pointer transition-colors relative py-1 whitespace-nowrap ${
-                isActive ? 'text-primary' : 'text-foreground/70 hover:text-foreground'
+              className="absolute left-0 right-4 -bottom-1 h-[2px] bg-primary rounded-full"
+              aria-hidden="true"
+            />
+          )}
+        </button>
+
+        {open && (
+          <div
+            role="menu"
+            className="absolute right-0 top-full mt-2 min-w-[220px] rounded-xl border border-border bg-white shadow-lg overflow-hidden z-50"
+          >
+            <ul className="py-2">
+              {group.children.map((child) => {
+                const childActive = isLinkActive(child.to);
+                return (
+                  <li key={child.to}>
+                    <Link to={child.to} onClick={() => setOpenGroup(null)}>
+                      <span
+                        className={`block px-4 py-2.5 text-base font-medium transition-colors ${
+                          childActive
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground'
+                        }`}
+                      >
+                        {child.label}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </li>
+    );
+  }
+
+  function renderMobileItem(item: NavItem) {
+    if (item.kind === 'link') {
+      const active = isLinkActive(item.to);
+      return (
+        <li key={item.to}>
+          <Link to={item.to} onClick={() => setMenuOpen(false)}>
+            <span
+              className={`block px-5 py-3 text-base font-medium rounded-lg transition-colors ${
+                active
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground'
               }`}
             >
-              {label}
-              {isActive && (
-                <span
-                  className="absolute left-0 right-0 -bottom-1 h-[2px] bg-primary rounded-full"
-                  aria-hidden="true"
-                />
-              )}
+              {item.label}
             </span>
           </Link>
         </li>
       );
     }
+
+    const open = openMobileGroup === item.label;
+    const active = isGroupActive(item);
     return (
-      <li key={to}>
-        <Link to={to} onClick={() => setMenuOpen(false)}>
-          <span
-            className={`block px-5 py-3 text-base font-medium rounded-lg transition-colors ${
-              isActive
-                ? 'bg-primary/10 text-primary'
-                : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground'
-            }`}
+      <li key={item.label}>
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpenMobileGroup(open ? null : item.label)}
+          className={`w-full flex items-center justify-between px-5 py-3 text-base font-medium rounded-lg transition-colors ${
+            active
+              ? 'bg-primary/10 text-primary'
+              : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground'
+          }`}
+        >
+          <span>{item.label}</span>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`transition-transform ${open ? 'rotate-180' : ''}`}
+            aria-hidden="true"
           >
-            {label}
-          </span>
-        </Link>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        {open && (
+          <ul className="mt-1 ml-3 pl-3 border-l border-border/60 flex flex-col gap-1">
+            {item.children.map((child) => {
+              const childActive = isLinkActive(child.to);
+              return (
+                <li key={child.to}>
+                  <Link to={child.to} onClick={() => setMenuOpen(false)}>
+                    <span
+                      className={`block px-4 py-2.5 text-[15px] font-medium rounded-lg transition-colors ${
+                        childActive
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-foreground/75 hover:bg-foreground/5 hover:text-foreground'
+                      }`}
+                    >
+                      {child.label}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </li>
     );
   }
@@ -136,7 +300,9 @@ export default function AppHeader() {
         {/* Desktop nav */}
         <nav aria-label="Main navigation" className="hidden lg:flex flex-1">
           <ul className="flex items-center justify-end gap-5 xl:gap-6 w-full">
-            {navLinks.map((link) => renderNavLink(link, 'desktop'))}
+            {navItems.map((item) =>
+              item.kind === 'link' ? renderDesktopLeaf(item) : renderDesktopGroup(item)
+            )}
 
             {!isLoading && !isAuthenticated && (
               <>
@@ -202,7 +368,7 @@ export default function AppHeader() {
             className="lg:hidden absolute left-0 right-0 top-full bg-background border-b border-border/60 shadow-lg"
           >
             <ul className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-1">
-              {navLinks.map((link) => renderNavLink(link, 'mobile'))}
+              {navItems.map((item) => renderMobileItem(item))}
 
               <li className="pt-2 mt-2 border-t border-border/60 flex flex-col gap-2">
                 {!isLoading && !isAuthenticated && (

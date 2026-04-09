@@ -14,24 +14,21 @@ export default function PublicFooter() {
         </div>
 
         <nav aria-label="Footer navigation">
-          <ul className="flex gap-8 text-base font-medium text-foreground/80">
+          <ul className="flex flex-wrap justify-center gap-6 sm:gap-8 text-base font-medium text-foreground/80">
             <li>
-              <a href="#" className="hover:text-primary transition-colors">
+              <a href="/#mission" className="hover:text-primary transition-colors">
                 Our Mission
               </a>
             </li>
-
-            {/* ✅ THIS IS THE IMPORTANT CHANGE */}
             <li>
               <Link to="/privacy" className="hover:text-primary transition-colors">
                 Privacy Policy
               </Link>
             </li>
-
             <li>
-              <a href="#" className="hover:text-primary transition-colors">
+              <Link to="/contact" className="hover:text-primary transition-colors">
                 Contact
-              </a>
+              </Link>
             </li>
           </ul>
         </nav>
