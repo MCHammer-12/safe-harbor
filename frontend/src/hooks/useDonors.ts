@@ -337,3 +337,36 @@ export function useDonationsByProgramArea(refreshToken = 0): QueryState<ProgramA
 
   return state;
 }
+
+export function useDonationsByProgramAreaForSupporter(
+  supporterId: number | null,
+  refreshToken = 0
+): QueryState<ProgramAreaTotal[]> {
+  const [state, setState] = useState<QueryState<ProgramAreaTotal[]>>({
+    data: null,
+    loading: false,
+    error: null,
+  });
+
+  useEffect(() => {
+    if (supporterId == null) {
+      setState({ data: null, loading: false, error: null });
+      return;
+    }
+    let cancelled = false;
+    setState((s) => ({ ...s, loading: true }));
+    apiGet<ProgramAreaTotal[]>(`/api/Donations/by-program-area/supporter/${supporterId}`).then((res) => {
+      if (cancelled) return;
+      setState({
+        data: res.data ?? [],
+        loading: false,
+        error: res.error,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [supporterId, refreshToken]);
+
+  return state;
+}
