@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using backend.Models;
+using CurrencyToPhp = global::backend.CurrencyToPhp;
 
 namespace backend.Controllers;
 
@@ -38,6 +39,56 @@ public class SupportersController : ControllerBase
         public int PageSize { get; set; }
     }
 
+    public class CreateSupporterRequest
+    {
+        public string SupporterType { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string? OrganizationName { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string RelationshipType { get; set; } = "";
+        public string Region { get; set; } = "";
+        public string Country { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string Status { get; set; } = "";
+        public DateOnly? FirstDonationDate { get; set; }
+        public string AcquisitionChannel { get; set; } = "";
+    }
+
+    private static readonly HashSet<string> AllowedSupporterTypes = new(StringComparer.Ordinal)
+    {
+        "MonetaryDonor",
+        "InKindDonor",
+        "Volunteer",
+        "SkillsContributor",
+        "SocialMediaAdvocate",
+        "PartnerOrganization",
+    };
+
+    private static readonly HashSet<string> AllowedRelationshipTypes = new(StringComparer.Ordinal)
+    {
+        "Local",
+        "International",
+        "PartnerOrganization",
+    };
+
+    private static readonly HashSet<string> AllowedStatuses = new(StringComparer.Ordinal)
+    {
+        "Active",
+        "Inactive",
+    };
+
+    private static readonly HashSet<string> AllowedAcquisitionChannels = new(StringComparer.Ordinal)
+    {
+        "Website",
+        "SocialMedia",
+        "Event",
+        "WordOfMouth",
+        "PartnerReferral",
+        "Church",
+    };
+
     [HttpGet]
     public async Task<ActionResult<PagedResult<SupporterListItem>>> GetSupporters(
         [FromQuery] int page = 1,
@@ -66,11 +117,43 @@ public class SupportersController : ControllerBase
 
         var total = await q.CountAsync();
 
-        var items = await q
+        var supporterScalars = await q
             .OrderBy(s => s.DisplayName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(s => new SupporterListItem
+            .Select(s => new
+            {
+                s.SupporterId,
+                s.DisplayName,
+                s.SupporterType,
+                s.RelationshipType,
+                s.Region,
+                s.Country,
+                s.Email,
+                s.Status,
+                s.FirstDonationDate,
+            })
+            .ToListAsync();
+
+        var pageIds = supporterScalars.Select(s => s.SupporterId).ToList();
+        var donationRows = await _context.Donations
+            .AsNoTracking()
+            .Where(d => pageIds.Contains(d.SupporterId))
+            .Select(d => new { d.SupporterId, d.EstimatedValue, d.CurrencyCode })
+            .ToListAsync();
+
+        var statsBySupporter = donationRows
+            .GroupBy(d => d.SupporterId)
+            .ToDictionary(
+                g => g.Key,
+                g => (
+                    Count: g.Count(),
+                    TotalPhp: g.Sum(d => CurrencyToPhp.Convert(d.EstimatedValue, d.CurrencyCode))));
+
+        var items = supporterScalars.Select(s =>
+        {
+            var hasStats = statsBySupporter.TryGetValue(s.SupporterId, out var st);
+            return new SupporterListItem
             {
                 SupporterId = s.SupporterId,
                 DisplayName = s.DisplayName,
@@ -81,10 +164,10 @@ public class SupportersController : ControllerBase
                 Email = s.Email,
                 Status = s.Status,
                 FirstDonationDate = s.FirstDonationDate,
-                TotalGiven = s.Donations.Sum(d => (double?)d.EstimatedValue) ?? 0,
-                DonationCount = s.Donations.Count(),
-            })
-            .ToListAsync();
+                TotalGiven = hasStats ? st.TotalPhp : 0,
+                DonationCount = hasStats ? st.Count : 0,
+            };
+        }).ToList();
 
         return Ok(new PagedResult<SupporterListItem>
         {
@@ -119,5 +202,167 @@ public class SupportersController : ControllerBase
             .ToListAsync();
 
         return Ok(donations);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<Supporter>> CreateSupporter([FromBody] CreateSupporterRequest request)
+    {
+        if (request == null) return BadRequest(new { error = "Request body is required." });
+
+        var supporterType = request.SupporterType.Trim();
+        var displayName = request.DisplayName.Trim();
+        var relationshipType = request.RelationshipType.Trim();
+        var region = request.Region.Trim();
+        var country = request.Country.Trim();
+        var email = request.Email.Trim();
+        var phone = request.Phone.Trim();
+        var status = request.Status.Trim();
+        var acquisitionChannel = request.AcquisitionChannel.Trim();
+        var organizationName = string.IsNullOrWhiteSpace(request.OrganizationName) ? null : request.OrganizationName.Trim();
+        var firstName = string.IsNullOrWhiteSpace(request.FirstName) ? null : request.FirstName.Trim();
+        var lastName = string.IsNullOrWhiteSpace(request.LastName) ? null : request.LastName.Trim();
+
+        if (string.IsNullOrWhiteSpace(supporterType) || string.IsNullOrWhiteSpace(displayName) ||
+            string.IsNullOrWhiteSpace(relationshipType) || string.IsNullOrWhiteSpace(region) ||
+            string.IsNullOrWhiteSpace(country) || string.IsNullOrWhiteSpace(email) ||
+            string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(status) ||
+            string.IsNullOrWhiteSpace(acquisitionChannel))
+        {
+            return BadRequest(new { error = "Missing one or more required fields." });
+        }
+
+        if (!AllowedSupporterTypes.Contains(supporterType))
+            return BadRequest(new { error = "Invalid supporter_type." });
+        if (!AllowedRelationshipTypes.Contains(relationshipType))
+            return BadRequest(new { error = "Invalid relationship_type." });
+        if (!AllowedStatuses.Contains(status))
+            return BadRequest(new { error = "Invalid status." });
+        if (!AllowedAcquisitionChannels.Contains(acquisitionChannel))
+            return BadRequest(new { error = "Invalid acquisition_channel." });
+
+        if (supporterType == "PartnerOrganization")
+        {
+            if (string.IsNullOrWhiteSpace(organizationName))
+                return BadRequest(new { error = "organization_name is required for PartnerOrganization." });
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+                return BadRequest(new { error = "first_name and last_name are required for non-organization supporters." });
+        }
+
+        var supporter = new Supporter
+        {
+            SupporterType = supporterType,
+            DisplayName = displayName,
+            OrganizationName = organizationName,
+            FirstName = firstName,
+            LastName = lastName,
+            RelationshipType = relationshipType,
+            Region = region,
+            Country = country,
+            Email = email,
+            Phone = phone,
+            Status = status,
+            CreatedAt = DateTime.UtcNow,
+            FirstDonationDate = request.FirstDonationDate,
+            AcquisitionChannel = acquisitionChannel,
+        };
+
+        try
+        {
+            _context.Supporters.Add(supporter);
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            return StatusCode(500, new
+            {
+                error = "Failed to create supporter.",
+                detail = ex.GetBaseException().Message,
+            });
+        }
+
+        return CreatedAtAction(nameof(GetSupporter), new { id = supporter.SupporterId }, supporter);
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<Supporter>> UpdateSupporter(int id, [FromBody] CreateSupporterRequest request)
+    {
+        if (request == null) return BadRequest(new { error = "Request body is required." });
+
+        var existing = await _context.Supporters.FirstOrDefaultAsync(s => s.SupporterId == id);
+        if (existing == null) return NotFound(new { error = $"Supporter {id} not found." });
+
+        var supporterType = request.SupporterType.Trim();
+        var displayName = request.DisplayName.Trim();
+        var relationshipType = request.RelationshipType.Trim();
+        var region = request.Region.Trim();
+        var country = request.Country.Trim();
+        var email = request.Email.Trim();
+        var phone = request.Phone.Trim();
+        var status = request.Status.Trim();
+        var acquisitionChannel = request.AcquisitionChannel.Trim();
+        var organizationName = string.IsNullOrWhiteSpace(request.OrganizationName) ? null : request.OrganizationName.Trim();
+        var firstName = string.IsNullOrWhiteSpace(request.FirstName) ? null : request.FirstName.Trim();
+        var lastName = string.IsNullOrWhiteSpace(request.LastName) ? null : request.LastName.Trim();
+
+        if (string.IsNullOrWhiteSpace(supporterType) || string.IsNullOrWhiteSpace(displayName) ||
+            string.IsNullOrWhiteSpace(relationshipType) || string.IsNullOrWhiteSpace(region) ||
+            string.IsNullOrWhiteSpace(country) || string.IsNullOrWhiteSpace(email) ||
+            string.IsNullOrWhiteSpace(phone) || string.IsNullOrWhiteSpace(status) ||
+            string.IsNullOrWhiteSpace(acquisitionChannel))
+        {
+            return BadRequest(new { error = "Missing one or more required fields." });
+        }
+
+        if (!AllowedSupporterTypes.Contains(supporterType))
+            return BadRequest(new { error = "Invalid supporter_type." });
+        if (!AllowedRelationshipTypes.Contains(relationshipType))
+            return BadRequest(new { error = "Invalid relationship_type." });
+        if (!AllowedStatuses.Contains(status))
+            return BadRequest(new { error = "Invalid status." });
+        if (!AllowedAcquisitionChannels.Contains(acquisitionChannel))
+            return BadRequest(new { error = "Invalid acquisition_channel." });
+
+        if (supporterType == "PartnerOrganization")
+        {
+            if (string.IsNullOrWhiteSpace(organizationName))
+                return BadRequest(new { error = "organization_name is required for PartnerOrganization." });
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+                return BadRequest(new { error = "first_name and last_name are required for non-organization supporters." });
+        }
+
+        existing.SupporterType = supporterType;
+        existing.DisplayName = displayName;
+        existing.OrganizationName = organizationName;
+        existing.FirstName = firstName;
+        existing.LastName = lastName;
+        existing.RelationshipType = relationshipType;
+        existing.Region = region;
+        existing.Country = country;
+        existing.Email = email;
+        existing.Phone = phone;
+        existing.Status = status;
+        existing.FirstDonationDate = request.FirstDonationDate;
+        existing.AcquisitionChannel = acquisitionChannel;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            return StatusCode(500, new
+            {
+                error = "Failed to update supporter.",
+                detail = ex.GetBaseException().Message,
+            });
+        }
+
+        return Ok(existing);
     }
 }

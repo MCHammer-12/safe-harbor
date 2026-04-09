@@ -59,7 +59,9 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:5173",
-                "https://safe-harbor.vercel.app"
+                "https://safe-harbor.vercel.app",
+                "https://nice-beach-0045c401e.6.azurestaticapps.net",
+                "https://safeharbor.mhammerventures.com"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()

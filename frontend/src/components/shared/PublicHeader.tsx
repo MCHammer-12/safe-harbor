@@ -7,7 +7,7 @@ const navLinks = [
 ];
 
 export default function PublicHeader() {
-  const location = useLocation();
+  const { pathname } = useLocation();
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/60">
@@ -21,8 +21,7 @@ export default function PublicHeader() {
         <nav aria-label="Public navigation">
           <ul className="flex items-center gap-6">
             {navLinks.map(({ to, label }) => {
-              const isActive = location.pathname === to;
-
+              const isActive = pathname === to;
               return (
                 <li key={to}>
                   <Link to={to}>
