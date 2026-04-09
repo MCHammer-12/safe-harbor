@@ -328,7 +328,25 @@ public class ReportsController : ControllerBase
         try
         {
             var anchor = await GetAnchorDateAsync();
-            var y = year ?? anchor.Year;
+            int y;
+            if (year.HasValue)
+            {
+                y = year.Value;
+            }
+            else
+            {
+                var anyPlans = await _context.InterventionPlans.AsNoTracking().AnyAsync();
+                if (anyPlans)
+                {
+                    var maxPlanCreated = await _context.InterventionPlans.AsNoTracking()
+                        .MaxAsync(p => p.CreatedAt);
+                    y = maxPlanCreated.Year;
+                }
+                else
+                {
+                    y = anchor.Year;
+                }
+            }
             var yearStart = new DateOnly(y, 1, 1);
             var yearEnd = new DateOnly(y, 12, 31);
 
