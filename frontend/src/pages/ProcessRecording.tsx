@@ -538,7 +538,6 @@ function NewEntryModal({
               type="submit"
               disabled={!canSubmit || saving}
               className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              title={!canSubmit ? 'Fill all required fields' : undefined}
             >
               {saving ? 'Saving…' : 'Save'}
             </button>

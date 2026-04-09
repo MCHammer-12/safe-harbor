@@ -10,7 +10,8 @@ import {
   type RecentActivityItem,
 } from '@/hooks/useAdminDashboard';
 import { apiGet } from '@/lib/api';
-import { formatPhp } from '@/lib/currencyPhp';
+import { formatPhp, phpToUsdTooltip } from '@/lib/currencyPhp';
+import InlineHoverTooltip from '@/components/shared/InlineHoverTooltip';
 
 function formatRelativeDate(iso: string): string {
   const d = new Date(iso);
@@ -115,6 +116,7 @@ export default function AdminDashboardPage() {
         : kpis.data
           ? formatPhp(kpis.data.recentDonationsAmount)
           : '—',
+      tooltip: kpis.data ? phpToUsdTooltip(kpis.data.recentDonationsAmount) : undefined,
       sub: 'Last 7 days' as string | null,
     },
     {
@@ -183,7 +185,7 @@ export default function AdminDashboardPage() {
 
         {/* KPI Cards */}
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
-          {kpiCards.map(({ label, value, sub }) => (
+          {kpiCards.map(({ label, value, sub, tooltip }) => (
             <div
               key={label}
               className="rounded-2xl border border-border bg-white p-8 shadow-sm hover:shadow-md transition-shadow"
@@ -193,7 +195,9 @@ export default function AdminDashboardPage() {
               <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
                 {label}
               </p>
-              <p className="text-4xl font-serif text-foreground">{value}</p>
+              <p className="text-4xl font-serif text-foreground">
+                <InlineHoverTooltip text={tooltip}>{value}</InlineHoverTooltip>
+              </p>
               <p className="text-sm text-primary mt-3 font-medium h-5">{sub || ''}</p>
             </div>
           ))}
@@ -341,11 +345,9 @@ export default function AdminDashboardPage() {
                         className="w-full bg-primary/80 rounded-t-sm group-hover:bg-primary transition-colors min-h-[2px]"
                         style={{ height: `${h}%` }}
                         aria-label={`${xLabel}: ${value} ${weeklyMetricLabel.toLowerCase()}`}
-                        title={`${d.day}: ${value} ${weeklyMetricLabel.toLowerCase()} (${d.processRecordings} recordings, ${d.homeVisitations} visits, ${d.donations} donations)`}
                       />
                       <span
                         className="text-[10px] text-white/50 font-medium uppercase tracking-wider text-center leading-tight"
-                        title={xLabel}
                       >
                         {xLabel}
                       </span>

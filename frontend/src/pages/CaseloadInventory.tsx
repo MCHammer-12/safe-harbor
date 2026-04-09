@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
 import StaffHeader from '@/components/shared/StaffHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
+import MlResidentWellbeingPanel from '@/components/ml/MlResidentWellbeingPanel';
+import MlEarlyWarningPanel from '@/components/ml/MlEarlyWarningPanel';
+import MlReintegrationReadinessPanel from '@/components/ml/MlReintegrationReadinessPanel';
 import { Search, Filter, MapPin, Tag, AlertTriangle, X } from 'lucide-react';
 import {
   useCaseloadList,
@@ -171,6 +174,10 @@ export default function CaseloadInventoryPage() {
             + New Resident
           </button>
         </div>
+
+        <MlResidentWellbeingPanel />
+        <MlEarlyWarningPanel />
+        <MlReintegrationReadinessPanel />
 
         {/* Filter Bar */}
         <section className="bg-white rounded-2xl p-4 border border-border shadow-sm mb-6">

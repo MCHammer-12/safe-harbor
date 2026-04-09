@@ -169,7 +169,6 @@ export default function ImpactDashboardPage() {
                   <div
                     key={month}
                     className="flex-1 h-full flex flex-col items-center justify-end gap-2"
-                    title={`${month}: $${total.toLocaleString()}`}
                   >
                     <div
                       className="w-full rounded-t-md bg-primary/80 hover:bg-primary transition-colors"
