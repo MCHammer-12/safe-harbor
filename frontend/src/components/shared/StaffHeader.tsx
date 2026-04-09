@@ -4,8 +4,10 @@ const navLinks = [
   { to: '/impact', label: 'Impact' },
   { to: '/donor', label: 'Donor' },
   { to: '/admin', label: 'Admin' },
+  { to: '/admin/ml-integration', label: 'ML' },
   { to: '/caseload', label: 'Caseload' },
   { to: '/donors', label: 'Donors' },
+  { to: '/social', label: 'Social' },
   { to: '/process-recordings', label: 'Process Recording' },
 ];
 

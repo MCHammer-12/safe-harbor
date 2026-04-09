@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-04-08 -- IS 455 ML deployment (shared ml_service, FastAPI, .NET proxy, UI)
+
+**What was done:**
+- Added `docs/ml-deployment.md` (architecture, endpoints, pipeline→page matrix, grader path, nightly retrain notes)
+- Created `ml_service/` (donor churn feature engineering aligned with notebook) and `scripts/train_donor_churn.py`; training produces `models/donor_churn_rf.joblib` (gitignored)
+- Added `ml_api/` FastAPI app: `/health`, `/models`, `POST /predict/donor-churn` (batch), placeholder routes for five other pipelines
+- Backend: `MlController` with `GET /api/Ml/deployment-status`, `GET /api/Ml/donor-churn-scores`; `Program.cs` registers `HttpClient` `MlApi`; `appsettings.json` sample `Ml:BaseUrl`
+- Frontend: `/admin/ml-integration`, `/social`, `MlDonorChurnPanel` on `/donors`, caseload + social ML status panels; StaffHeader nav links
+- `ml-pipelines/requirements.txt`; SETUP.md ML section; Section 6 replaced in all six `.ipynb` with repo paths
+
+**Files changed:** `ml_service/**`, `ml_api/**`, `scripts/train_donor_churn.py`, `models/README.md`, `backend/backend/Controllers/MlController.cs`, `backend/backend/Program.cs`, `backend/backend/appsettings.json`, `frontend/src/App.tsx`, `StaffHeader.tsx`, `DonorsContributions.tsx`, `CaseloadInventory.tsx`, new `components/ml/*`, `pages/MlIntegrationPage.tsx`, `SocialMediaDashboard.tsx`, hooks/types for ML, `docs/*`, `.gitignore`, six notebooks under `ml-pipelines/`
+
+**Next steps:** Train remaining models and wire predict schemas; optional `pip install -e ml_service` in notebook first cell for shared imports; Azure deploy second App Service for Python
+
+---
+
 ## 2026-04-08 -- Slice 3: Admin Dashboard wired to backend (Michael)
 
 **What was done:**

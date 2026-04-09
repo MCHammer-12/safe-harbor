@@ -1,5 +1,7 @@
 import StaffHeader from '@/components/shared/StaffHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
+import MlCaseloadPipelinePanel from '@/components/ml/MlCaseloadPipelinePanel';
+import MlResidentWellbeingPanel from '@/components/ml/MlResidentWellbeingPanel';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { useResidents } from '@/hooks/useMockData';
 import { Search, Filter, MapPin, Tag } from 'lucide-react';
@@ -23,6 +25,9 @@ export default function CaseloadInventoryPage() {
             admission details, assigned social worker, and reintegration tracking milestones.
           </p>
         </div>
+
+        <MlCaseloadPipelinePanel />
+        <MlResidentWellbeingPanel />
 
         {/* Filter Bar */}
         <section

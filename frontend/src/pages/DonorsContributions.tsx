@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import StaffHeader from '@/components/shared/StaffHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
+import MlDonorChurnPanel from '@/components/ml/MlDonorChurnPanel';
 import {
   useSupporters,
   useSupporterDetail,
@@ -848,6 +849,8 @@ export default function DonorsContributionsPage() {
             })}
           </div>
         </section>
+
+        <MlDonorChurnPanel page={page} pageSize={PAGE_SIZE} />
       </main>
       <PublicFooter />
 

@@ -13,6 +13,15 @@ builder.Services.AddDbContext<MainAppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("MainAppDbConnection")));
 
+builder.Services.AddHttpClient("MlApi", (sp, client) =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var baseUrl = cfg["Ml:BaseUrl"]?.Trim().TrimEnd('/');
+    if (!string.IsNullOrWhiteSpace(baseUrl))
+        client.BaseAddress = new Uri(baseUrl + "/");
+    client.Timeout = TimeSpan.FromSeconds(120);
+});
+
 const string FrontendCorsPolicy = "FrontendCorsPolicy";
 builder.Services.AddCors(options =>
 {
@@ -21,6 +30,7 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:5173",
+                "http://127.0.0.1:5173",
                 "https://safe-harbor.vercel.app",
                 "https://nice-beach-0045c401e.6.azurestaticapps.net"
             )
