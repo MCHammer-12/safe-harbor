@@ -31,3 +31,27 @@ export interface ResidentWellbeingScoreRow {
   wellbeingLag: number;
   error: string | null;
 }
+
+export interface DonorHighValueScoreRow {
+  supporterId: number;
+  highValueProbability: number;
+  error: string | null;
+}
+
+export interface EarlyWarningScoreRow {
+  residentId: number;
+  struggleProbability: number;
+  error: string | null;
+}
+
+export interface ReintegrationReadinessScoreRow {
+  residentId: number;
+  readinessProbability: number;
+  error: string | null;
+}
+
+export interface SocialEngagementScoreRow {
+  month: string;
+  predictedNextMonetary: number;
+  error: string | null;
+}

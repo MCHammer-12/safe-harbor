@@ -7,7 +7,6 @@ const navLinks = [
   { to: '/admin/ml-integration', label: 'ML' },
   { to: '/caseload', label: 'Caseload' },
   { to: '/donors', label: 'Donors' },
-  { to: '/social', label: 'Social' },
   { to: '/process-recordings', label: 'Process Recording' },
   { to: '/home-visits', label: 'Home Visits' },
   { to: '/reports', label: 'Reports' },

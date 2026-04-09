@@ -63,6 +63,11 @@ jupyter notebook
    ```bash
    pip install -r ml_api/requirements.txt
    pip install -e ml_service
+   # optional production-like mode:
+   # export MODEL_SOURCE=blob
+   # export AZURE_STORAGE_CONNECTION_STRING=...
+   # export AZURE_BLOB_CONTAINER=ml-models
+   # export AZURE_BLOB_PREFIX=models/latest
    python -m uvicorn ml_api.main:app --host 127.0.0.1 --port 8010
    ```
 
@@ -78,6 +83,10 @@ jupyter notebook
    Optional: set `ML_API_KEY` in the FastAPI environment and the same value in `Ml:ApiKey`.
 
 Full matrix and endpoints: [`docs/ml-deployment.md`](ml-deployment.md).
+Frontend page mapping for ML:
+- `/donors`: donor churn + donor high-value
+- `/caseload`: resident wellbeing + early warning + reintegration readiness
+- `/social-media`: social engagement to donations
 
 ## Environment Variables
 

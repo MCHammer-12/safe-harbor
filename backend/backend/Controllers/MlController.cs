@@ -168,9 +168,22 @@ public class MlController : ControllerBase
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 25;
 
-        var asOfDate = string.IsNullOrWhiteSpace(asOf)
-            ? DateOnly.FromDateTime(DateTime.UtcNow)
-            : DateOnly.Parse(asOf);
+        DateOnly asOfDate;
+        if (!string.IsNullOrWhiteSpace(asOf))
+        {
+            asOfDate = DateOnly.Parse(asOf);
+        }
+        else
+        {
+            var maxDonationDate = await _context.Donations.AsNoTracking()
+                .Where(d => d.DonationDate != null)
+                .MaxAsync(d => d.DonationDate, ct);
+
+            if (!maxDonationDate.HasValue)
+                return Ok(Array.Empty<DonorHighValueScoreRow>());
+
+            asOfDate = new DateOnly(maxDonationDate.Value.Year, maxDonationDate.Value.Month, 1);
+        }
 
         var supporters = await _context.Supporters
             .AsNoTracking()
@@ -744,7 +757,7 @@ public class MlController : ControllerBase
             new("resident_wellbeing", "resident_wellbeing_next_month.ipynb", "/caseload", "GET /api/Ml/resident-wellbeing-scores", "POST /predict/resident-wellbeing", "resident_wellbeing"),
             new("early_warning", "early_warning_incident_next_month.ipynb", "/caseload", "GET /api/Ml/early-warning-scores", "POST /predict/early-warning", "early_warning"),
             new("reintegration", "reintegration_readiness_next_month.ipynb", "/caseload", "GET /api/Ml/reintegration-readiness-scores", "POST /predict/reintegration-readiness", "reintegration"),
-            new("social_engagement", "social_media_engagement_to_donations.ipynb", "/social", "GET /api/Ml/social-engagement-forecast", "POST /predict/social-engagement-donations", "social_engagement"),
+            new("social_engagement", "social_media_engagement_to_donations.ipynb", "/social-media", "GET /api/Ml/social-engagement-forecast", "POST /predict/social-engagement-donations", "social_engagement"),
         };
     }
 }

@@ -54,6 +54,25 @@ else
 
 app.UseCors(FrontendCorsPolicy);
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api/Ml", StringComparison.OrdinalIgnoreCase))
+    {
+        var started = DateTime.UtcNow;
+        await next();
+        var elapsedMs = (DateTime.UtcNow - started).TotalMilliseconds;
+        app.Logger.LogInformation(
+            "ML request {Method} {Path} -> {StatusCode} in {ElapsedMs:0.0}ms",
+            context.Request.Method,
+            context.Request.Path,
+            context.Response.StatusCode,
+            elapsedMs);
+        return;
+    }
+
+    await next();
+});
+
 app.UseAuthorization();
 
 app.MapControllers();

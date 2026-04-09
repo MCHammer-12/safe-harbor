@@ -1,5 +1,8 @@
 import StaffHeader from '@/components/shared/StaffHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
+import MlSocialPipelinePanel from '@/components/ml/MlSocialPipelinePanel';
+import MlSocialEngagementForecastPanel from '@/components/ml/MlSocialEngagementForecastPanel';
+import SocialInsightsPanel from '@/components/social/SocialInsightsPanel';
 
 export default function SocialMediaDashboardPage() {
   return (
@@ -14,9 +17,13 @@ export default function SocialMediaDashboardPage() {
             Social Media Dashboard
           </h1>
           <p className="text-lg text-muted-foreground max-w-3xl leading-relaxed">
-            Placeholder — vertical slice under construction, pending ML pipeline integration.
+            See what social media actions are helping donations, so your team can post smarter with less guesswork.
           </p>
         </div>
+
+        <SocialInsightsPanel />
+        <MlSocialPipelinePanel />
+        <MlSocialEngagementForecastPanel />
       </main>
       <PublicFooter />
     </div>

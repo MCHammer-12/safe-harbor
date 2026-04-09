@@ -6,8 +6,10 @@ Run from repo root: uvicorn ml_api.main:app --host 0.0.0.0 --port 8010
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException
@@ -54,15 +56,30 @@ from ml_service.features.social_engagement import (  # noqa: E402
 
 MODELS_DIR = Path(os.environ.get("MODELS_DIR", _REPO_ROOT / "models"))
 ML_API_KEY = os.environ.get("ML_API_KEY", "").strip()
+MODEL_SOURCE = os.environ.get("MODEL_SOURCE", "local").strip().lower()
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "").strip()
+AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "ml-models").strip()
+AZURE_BLOB_PREFIX = os.environ.get("AZURE_BLOB_PREFIX", "models/latest").strip().strip("/")
 
 app = FastAPI(title="Safe Harbor ML API", version="0.1.0")
 
 _models: dict[str, object] = {}
 _bundle_feature_cols: dict[str, list[str]] = {}
+_model_versions: dict[str, str] = {}
+logger = logging.getLogger("safe_harbor.ml_api")
 
 _STUB_PIPELINE_KEYS = frozenset(
     {"donor_high_value", "early_warning", "reintegration", "social_engagement"}
 )
+
+
+@app.middleware("http")
+async def log_request_timing(request, call_next):  # type: ignore[no-untyped-def]
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - start) * 1000.0
+    logger.info("%s %s -> %s (%.1fms)", request.method, request.url.path, response.status_code, elapsed_ms)
+    return response
 
 
 def _is_stub_model(key: str) -> bool:
@@ -89,6 +106,8 @@ def _load_joblib(name: str, filename: str) -> bool:
                 _bundle_feature_cols[name] = fc
         else:
             _models[name] = raw
+        mtime = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(path.stat().st_mtime))
+        _model_versions[name] = f"{filename}:{mtime}"
         return True
     except Exception:
         return False
@@ -134,10 +153,49 @@ def _inject_stub_pipeline(key: str) -> None:
     pipe.fit(x, y)
     _models[key] = pipe
     _bundle_feature_cols[key] = ["stub_feature"]
+    _model_versions[key] = "stub"
+
+
+def _sync_models_from_blob() -> None:
+    """
+    Optional production path: download latest model artifacts from Azure Blob
+    to MODELS_DIR before loading.
+    """
+    if MODEL_SOURCE != "blob":
+        return
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        logger.warning("MODEL_SOURCE=blob but AZURE_STORAGE_CONNECTION_STRING is not set; skipping blob sync")
+        return
+    try:
+        from azure.storage.blob import BlobServiceClient
+    except Exception:  # noqa: BLE001
+        logger.warning("azure-storage-blob is not installed; skipping blob sync")
+        return
+
+    wanted = [
+        "donor_churn_rf.joblib",
+        "donor_high_value_rf.joblib",
+        "resident_wellbeing_rf.joblib",
+        "early_warning_rf.joblib",
+        "reintegration_rf.joblib",
+        "social_engagement_rf.joblib",
+    ]
+    base = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+    container = base.get_container_client(AZURE_BLOB_CONTAINER)
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    for filename in wanted:
+        blob_name = f"{AZURE_BLOB_PREFIX}/{filename}"
+        try:
+            data = container.download_blob(blob_name).readall()
+            (MODELS_DIR / filename).write_bytes(data)
+            logger.info("Downloaded model artifact: %s", blob_name)
+        except Exception as ex:  # noqa: BLE001
+            logger.info("Model artifact not downloaded (%s): %s", blob_name, ex)
 
 
 @app.on_event("startup")
 def startup() -> None:
+    _sync_models_from_blob()
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     _load_joblib("donor_churn", "donor_churn_rf.joblib")
     for key, fn in [
@@ -172,7 +230,7 @@ def health() -> dict:
 
 @app.get("/models")
 def models() -> dict:
-    return {"loaded": list(_models.keys()), "status": _model_status()}
+    return {"loaded": list(_models.keys()), "status": _model_status(), "versions": _model_versions}
 
 
 # --- donor churn ---

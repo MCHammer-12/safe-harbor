@@ -20,6 +20,10 @@ Architecture: **sklearn** models saved as `joblib`; **FastAPI** loads them and s
 |----------|---------|
 | `ML_API_KEY` | If set, require header `X-ML-API-Key` on predict routes |
 | `MODELS_DIR` | Directory containing `*.joblib` (default: repo `models/`) |
+| `MODEL_SOURCE` | `local` (default) or `blob` for startup sync from Azure Blob |
+| `AZURE_STORAGE_CONNECTION_STRING` | Blob connection string used when `MODEL_SOURCE=blob` |
+| `AZURE_BLOB_CONTAINER` | Container name for model artifacts (default `ml-models`) |
+| `AZURE_BLOB_PREFIX` | Prefix for latest artifacts (default `models/latest`) |
 
 Model files (expected names):
 
@@ -45,7 +49,7 @@ Use repo `data/` (`./data` or `../data` from `ml-pipelines/`). See [`ml-pipeline
 | Method | Path | Notes |
 |--------|------|--------|
 | GET | `/health` | Liveness |
-| GET | `/models` | Which model files are loaded |
+| GET | `/models` | Which model files are loaded + per-model `versions` |
 | POST | `/predict/donor-churn` | Body: `{ "as_of": "YYYY-MM-DD", "supporters": [ { "supporter_id", "acquisition_channel", ... }, ... ], "donations": [ { "supporter_id", "donation_date", "estimated_value", "campaign_name" }, ... ] }` |
 | POST | `/predict/donor-high-value` | Placeholder until artifact exists |
 | POST | `/predict/resident-wellbeing` | Body: `as_of` (ISO date, month *m*) + eight lists of raw rows (`health_wellbeing_records`, `process_recordings`, `home_visitations`, `education_records`, `incident_reports`, `intervention_plans`, `residents`, `safehouses`) with the same column names as `data/*.csv`. Returns predicted next-month composite wellbeing per resident for that month. |
@@ -70,7 +74,7 @@ Use repo `data/` (`./data` or `../data` from `ml-pipelines/`). See [`ml-pipeline
 | `resident_wellbeing_next_month.ipynb` | `/caseload` | ML insights panel |
 | `early_warning_incident_next_month.ipynb` | `/caseload` | ML insights panel |
 | `reintegration_readiness_next_month.ipynb` | `/caseload` | ML insights panel |
-| `social_media_engagement_to_donations.ipynb` | `/social` | ML KPI block |
+| `social_media_engagement_to_donations.ipynb` | `/social-media` | ML KPI block |
 
 ## Local run (quick)
 
@@ -97,18 +101,25 @@ cd frontend && npm run dev
 
 1. Open **`/admin/ml-integration`** — confirm rows and green/amber/red status.
 2. Open **`/donors`** — “Live ML — donor churn” section shows scores when ML + DB are up.
-3. Open **`/caseload`** and **`/social`** — ML panels (may show “unavailable” until models exist).
+3. Open **`/caseload`** and **`/social-media`** — ML panels (may show “unavailable” until models exist).
 
 ## Nightly retraining (phase 2)
 
-Not automated in repo by default. Recommended pattern:
+Automated workflow: `.github/workflows/ml-nightly-train.yml`
 
-1. **Trigger:** Azure Functions timer, Container Apps job, or GitHub Actions `schedule`.
-2. **Data:** Export from Azure SQL to Parquet/CSV, or `pandas.read_sql` with read-only credentials.
-3. **Train:** Run `scripts/train_*.py` (same `ml_service` as inference).
-4. **Publish:** Upload new `joblib` to Blob or shared disk; restart ML service or swap `MODELS_DIR` version path.
+1. Runs on `schedule` + `workflow_dispatch`.
+2. Trains all six models via `scripts/train_*.py`.
+3. Emits `models/latest.json` run metadata.
+4. Uploads artifacts to workflow outputs.
+5. Optionally publishes versioned + latest blobs when Azure secrets are configured:
+   - `AZURE_CREDENTIALS`
+   - `AZURE_STORAGE_ACCOUNT`
+   - `AZURE_BLOB_CONTAINER`
 
-Document rollback by keeping the previous artifact.
+Blob naming strategy:
+- versioned: `models/{yyyy-mm-dd}/{artifact}.joblib`
+- latest alias: `models/latest/{artifact}.joblib`
+- manifest: `models/latest/latest.json`
 
 ## Security
 

@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useResidentWellbeingScores } from '@/hooks/useResidentWellbeingScores';
+import { useMlEarlyWarningScores } from '@/hooks/useMlEarlyWarningScores';
 import QuestionTooltip from '@/components/shared/QuestionTooltip';
 
 const PAGE_SIZE = 10;
 
-export default function MlResidentWellbeingPanel() {
-  const { rows, loading, error } = useResidentWellbeingScores();
+export default function MlEarlyWarningPanel() {
+  const { rows, loading, error } = useMlEarlyWarningScores();
   const [page, setPage] = useState(1);
   const sortedRows = useMemo(
     () =>
       [...(rows ?? [])].sort((a, b) => {
         if (a.error && !b.error) return 1;
         if (!a.error && b.error) return -1;
-        return a.predictedWellbeingNext - b.predictedWellbeingNext;
+        return b.struggleProbability - a.struggleProbability;
       }),
     [rows],
   );
@@ -35,25 +35,25 @@ export default function MlResidentWellbeingPanel() {
   return (
     <section
       className="rounded-2xl border border-border bg-white shadow-sm p-6 mb-8"
-      aria-label="Live ML resident wellbeing scores"
+      aria-label="Live ML early warning scores"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">ML — IS 455</p>
-          <h2 className="text-xl font-serif text-foreground">Live ML — next-month wellbeing</h2>
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">ML - IS 455</p>
+          <h2 className="text-xl font-serif text-foreground">Live ML - early warning (next month)</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Helps staff spot residents who may need extra support next month, so help can be planned
-            earlier and outcomes improve. Wellbeing is scored on a 1-5 scale.
+            Helps staff quickly see who is most at risk next month, so the team can act early and
+            reduce serious incidents.
           </p>
         </div>
         <Link to="/admin/ml-integration">
           <span className="text-sm font-medium text-primary cursor-pointer hover:underline">
-            View all ML integrations
+            ML integration overview
           </span>
         </Link>
       </div>
 
-      {loading && <p className="text-muted-foreground text-sm">Loading scores…</p>}
+      {loading && <p className="text-muted-foreground text-sm">Loading scores...</p>}
       {error && (
         <p className="text-sm text-destructive" role="alert">
           {error}
@@ -61,9 +61,7 @@ export default function MlResidentWellbeingPanel() {
       )}
       {!loading && !error && rows && rows.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          No scores for the default month (no panel rows, ML off, or model missing). Train{' '}
-          <code className="text-xs">resident_wellbeing_rf.joblib</code>, set <code className="text-xs">Ml:BaseUrl</code>
-          , and ensure health data exists for consecutive months.
+          No scores returned for the current feature month.
         </p>
       )}
       {!loading && rows && rows.length > 0 && (
@@ -73,17 +71,10 @@ export default function MlResidentWellbeingPanel() {
               <tr className="border-b border-border text-muted-foreground uppercase text-xs tracking-wide">
                 <th className="py-2 pr-4">Resident ID</th>
                 <th className="py-2 pr-4">
-                  This month (lag)
+                  Struggle probability
                   <QuestionTooltip
-                    label="What this month lag means"
-                    text="This is the resident's latest wellbeing score from this month on a 1-5 scale. It is a combined score made from 4 parts: sleep, nutrition, energy, and general health. We use this as the starting point before predicting next month."
-                  />
-                </th>
-                <th className="py-2 pr-4">
-                  Predicted next month
-                  <QuestionTooltip
-                    label="What predicted next month means"
-                    text="This is the model's best guess of the resident's wellbeing score next month on a 1-5 scale. It predicts the same combined score (sleep + nutrition + energy + general health) using this month's data."
+                    label="What struggle probability means"
+                    text="Struggle probability is the model-estimated likelihood (0 to 1) that a resident will experience elevated difficulty risk next month. Higher values indicate a stronger recommendation for early intervention."
                   />
                 </th>
               </tr>
@@ -96,11 +87,8 @@ export default function MlResidentWellbeingPanel() {
                     {r.error ? (
                       <span className="text-destructive text-xs">{r.error}</span>
                     ) : (
-                      r.wellbeingLag.toFixed(3)
+                      r.struggleProbability.toFixed(3)
                     )}
-                  </td>
-                  <td className="py-2 pr-4 font-medium text-foreground">
-                    {r.error ? '—' : r.predictedWellbeingNext.toFixed(3)}
                   </td>
                 </tr>
               ))}
