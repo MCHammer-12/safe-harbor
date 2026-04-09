@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loginUser } from '@/lib/AuthApi';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { refreshAuthState } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,6 +19,7 @@ export default function LoginPage() {
 
     try {
       await loginUser(email, password);
+      await refreshAuthState();
       navigate('/');
     } catch (error) {
       setErrorMessage(

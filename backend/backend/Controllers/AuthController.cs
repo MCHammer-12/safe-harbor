@@ -19,28 +19,31 @@ public class AuthController : ControllerBase
         _signInManager = signInManager;
     }
 
-    // ======================
-    // REGISTER
-    // ======================
-    [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterDto dto)
+   [HttpPost("register")]
+public async Task<IActionResult> Register([FromBody] RegisterDto dto)
+{
+    var user = new ApplicationUser
     {
-        var user = new ApplicationUser
+        UserName = dto.Email,
+        Email = dto.Email
+    };
+
+    var result = await _userManager.CreateAsync(user, dto.Password);
+
+    if (!result.Succeeded)
+    {
+        return BadRequest(result.Errors.Select(e => new
         {
-            UserName = dto.Email,
-            Email = dto.Email
-        };
-
-        var result = await _userManager.CreateAsync(user, dto.Password);
-
-        if (!result.Succeeded)
-            return BadRequest(result.Errors);
-
-        await _userManager.AddToRoleAsync(user, AuthRoles.User);
-
-        return Ok();
+            code = e.Code,
+            description = e.Description
+        }));
     }
 
+    
+    await _userManager.AddToRoleAsync(user, AuthRoles.Donor);
+
+    return Ok();
+}
     // ======================
     // LOGIN
     // ======================

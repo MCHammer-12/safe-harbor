@@ -13,13 +13,15 @@ import SocialMediaDashboardPage from '@/pages/SocialMediaDashboard';
 import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
-import CookieBanner from '@/components/shared/CookieBanner';
 import LogoutPage from '@/pages/LogoutPage';
+import CookieBanner from '@/components/shared/CookieBanner';
+import AppHeader from '@/components/shared/AppHeader';
 
 export default function App() {
   return (
     <>
       <CookieBanner />
+      <AppHeader />
 
       <Routes>
         <Route path="/" element={<HomePage />} />
