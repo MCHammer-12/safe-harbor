@@ -131,8 +131,8 @@ export default function HomePage() {
           )}
         </section>
 
-        <section className="max-w-6xl w-full mx-auto px-6 pb-24">
-          <p className="text-sm font-medium text-primary text-center mb-2">What we do</p>
+        <section id="mission" className="max-w-6xl w-full mx-auto px-6 pb-24 scroll-mt-24">
+          <p className="text-sm font-medium text-primary text-center mb-2">Our Mission</p>
           <h3 className="text-4xl md:text-5xl font-serif text-foreground text-center mb-12">
             Provide Safety, Healing, and Empowerment
           </h3>

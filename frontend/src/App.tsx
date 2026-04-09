@@ -13,6 +13,7 @@ import ReportsAnalyticsPage from '@/pages/ReportsAnalytics';
 import SocialMediaDashboardPage from '@/pages/SocialMediaDashboard';
 import MlIntegrationPage from '@/pages/MlIntegrationPage';
 import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage';
+import ContactPage from '@/pages/ContactPage';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import LogoutPage from '@/pages/LogoutPage';
@@ -132,6 +133,7 @@ export default function App() {
           }
         />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/logout" element={<LogoutPage />} />
         <Route path="/register" element={<RegisterPage />} />
