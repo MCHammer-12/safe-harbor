@@ -103,6 +103,7 @@ def _require_api_key(x_ml_api_key: str | None) -> None:
 def _load_joblib(name: str, filename: str) -> bool:
     path = MODELS_DIR / filename
     if not path.is_file():
+        logger.warning("Model file missing: %s", path)
         return False
     try:
         raw = joblib.load(path)
@@ -116,7 +117,8 @@ def _load_joblib(name: str, filename: str) -> bool:
         mtime = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(path.stat().st_mtime))
         _model_versions[name] = f"{filename}:{mtime}"
         return True
-    except Exception:
+    except Exception as ex:  # noqa: BLE001
+        logger.warning("Failed to load model %s from %s: %s", name, path, ex)
         return False
 
 
