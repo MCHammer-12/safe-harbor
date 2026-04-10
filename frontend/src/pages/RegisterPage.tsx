@@ -1,26 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  ACQUISITION_CHANNELS,
+  RELATIONSHIP_TYPES,
+  SUPPORTER_STATUSES,
+  SUPPORTER_TYPES,
+} from '@/data/supporterRegistrationConstants';
 import { registerUser } from '@/lib/AuthApi';
-
-const SUPPORTER_TYPES = [
-  'MonetaryDonor',
-  'InKindDonor',
-  'Volunteer',
-  'SkillsContributor',
-  'SocialMediaAdvocate',
-  'PartnerOrganization',
-] as const;
-
-const RELATIONSHIP_TYPES = ['Local', 'International', 'PartnerOrganization'] as const;
-const ACQUISITION_CHANNELS = [
-  'Website',
-  'SocialMedia',
-  'Event',
-  'WordOfMouth',
-  'PartnerReferral',
-  'Church',
-] as const;
-const STATUSES = ['Active', 'Inactive'] as const;
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -38,7 +24,7 @@ export default function RegisterPage() {
   const [region, setRegion] = useState('');
   const [country, setCountry] = useState('');
   const [phone, setPhone] = useState('');
-  const [status, setStatus] = useState<(typeof STATUSES)[number]>('Active');
+  const [status, setStatus] = useState<(typeof SUPPORTER_STATUSES)[number]>('Active');
   const [acquisitionChannel, setAcquisitionChannel] = useState<(typeof ACQUISITION_CHANNELS)[number]>('Website');
   const [organizationName, setOrganizationName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -287,9 +273,9 @@ export default function RegisterPage() {
                 id="status"
                 className="w-full rounded-md border px-3 py-2"
                 value={status}
-                onChange={(event) => setStatus(event.target.value as (typeof STATUSES)[number])}
+                onChange={(event) => setStatus(event.target.value as (typeof SUPPORTER_STATUSES)[number])}
               >
-                {STATUSES.map((value) => (
+                {SUPPORTER_STATUSES.map((value) => (
                   <option key={value} value={value}>
                     {value}
                   </option>

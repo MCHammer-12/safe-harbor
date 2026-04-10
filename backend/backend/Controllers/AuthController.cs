@@ -248,6 +248,208 @@ public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         });
     }
 
+    /// <summary>
+    /// Links the current user to a supporter (triple match on first name, last name, email) or creates a supporter then links.
+    /// Requires authentication. Email is always taken from the user account, not the body.
+    /// </summary>
+    [Authorize]
+    [HttpPost("link-donor-profile")]
+    public async Task<IActionResult> LinkDonorProfile([FromBody] LinkDonorProfileDto? dto)
+    {
+        if (dto == null)
+            return BadRequest(new { error = "Request body is required." });
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Unauthorized();
+
+        var accountEmail = user.Email?.Trim();
+        if (string.IsNullOrWhiteSpace(accountEmail))
+        {
+            return BadRequest(new
+            {
+                error = "Your account has no email on file. Contact support to use the donor portal.",
+            });
+        }
+
+        var normalizedEmail = accountEmail.ToLowerInvariant();
+
+        if (await _userManager.IsInRoleAsync(user, AuthRoles.Donor))
+        {
+            var existingClaimId = TryGetSupporterIdClaim(User);
+            if (existingClaimId is int sid &&
+                sid > 0 &&
+                await _mainAppDbContext.Supporters.AnyAsync(s => s.SupporterId == sid))
+            {
+                return Ok(new { linked = true });
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.FirstName) || string.IsNullOrWhiteSpace(dto.LastName))
+        {
+            return BadRequest(new { error = "firstName and lastName are required." });
+        }
+
+        var normalizedFirstName = dto.FirstName.Trim();
+        var normalizedLastName = dto.LastName.Trim();
+
+        var wantsCreate = !string.IsNullOrWhiteSpace(dto.SupporterType);
+
+        if (!wantsCreate)
+        {
+            var matchIds = await FindSupporterIdsByTripleAsync(
+                normalizedFirstName,
+                normalizedLastName,
+                normalizedEmail);
+
+            if (matchIds.Count == 0)
+                return Ok(new { needsSupporterDetails = true });
+
+            if (matchIds.Count > 1)
+            {
+                return Conflict(new
+                {
+                    error = "Multiple supporter profiles match this name and email. Contact support to link your account.",
+                });
+            }
+
+            return await FinalizeDonorLinkAsync(user, matchIds[0]);
+        }
+
+        var registerShape = new RegisterDto
+        {
+            Email = normalizedEmail,
+            Password = "",
+            FirstName = normalizedFirstName,
+            LastName = normalizedLastName,
+            SupporterType = dto.SupporterType!.Trim(),
+            OrganizationName = dto.OrganizationName,
+            RelationshipType = dto.RelationshipType ?? "",
+            Region = dto.Region ?? "",
+            Country = dto.Country ?? "",
+            Phone = dto.Phone ?? "",
+            Status = dto.Status ?? "",
+            AcquisitionChannel = dto.AcquisitionChannel ?? "",
+        };
+
+        var validationError = ValidateSupporterCreateFields(registerShape);
+        if (validationError is not null)
+            return BadRequest(new { error = validationError });
+
+        var supporterType = registerShape.SupporterType.Trim();
+        var relationshipType = registerShape.RelationshipType.Trim();
+        var region = registerShape.Region.Trim();
+        var country = registerShape.Country.Trim();
+        var phone = registerShape.Phone.Trim();
+        var status = registerShape.Status.Trim();
+        var acquisitionChannel = registerShape.AcquisitionChannel.Trim();
+        var organizationName = string.IsNullOrWhiteSpace(registerShape.OrganizationName)
+            ? null
+            : registerShape.OrganizationName.Trim();
+
+        if (supporterType != "PartnerOrganization")
+        {
+            if (string.IsNullOrWhiteSpace(normalizedFirstName) || string.IsNullOrWhiteSpace(normalizedLastName))
+                return BadRequest(new { error = "firstName and lastName are required for this supporter type." });
+        }
+
+        var existingMatches = await FindSupporterIdsByTripleAsync(
+            normalizedFirstName,
+            normalizedLastName,
+            normalizedEmail);
+
+        if (existingMatches.Count > 1)
+        {
+            return Conflict(new
+            {
+                error = "Multiple supporter profiles match this name and email. Contact support.",
+            });
+        }
+
+        if (existingMatches.Count == 1)
+            return await FinalizeDonorLinkAsync(user, existingMatches[0]);
+
+        var createdSupporter = new Supporter
+        {
+            SupporterType = supporterType,
+            DisplayName = supporterType == "PartnerOrganization"
+                ? organizationName!
+                : $"{normalizedFirstName} {normalizedLastName}",
+            OrganizationName = organizationName,
+            FirstName = normalizedFirstName,
+            LastName = normalizedLastName,
+            RelationshipType = relationshipType,
+            Region = region,
+            Country = country,
+            Email = normalizedEmail,
+            Phone = phone,
+            Status = status,
+            CreatedAt = DateTime.UtcNow,
+            AcquisitionChannel = acquisitionChannel,
+        };
+
+        _mainAppDbContext.Supporters.Add(createdSupporter);
+        await _mainAppDbContext.SaveChangesAsync();
+
+        return await FinalizeDonorLinkAsync(user, createdSupporter.SupporterId);
+    }
+
+    private async Task<List<int>> FindSupporterIdsByTripleAsync(
+        string firstName,
+        string lastName,
+        string normalizedEmail)
+    {
+        var fn = firstName.Trim().ToLowerInvariant();
+        var ln = lastName.Trim().ToLowerInvariant();
+        var em = normalizedEmail.Trim().ToLowerInvariant();
+
+        return await _mainAppDbContext.Supporters
+            .AsNoTracking()
+            .Where(s =>
+                s.FirstName != null &&
+                s.LastName != null &&
+                s.Email != null &&
+                s.FirstName.ToLower() == fn &&
+                s.LastName.ToLower() == ln &&
+                s.Email.ToLower() == em)
+            .Select(s => s.SupporterId)
+            .ToListAsync();
+    }
+
+    private async Task<IActionResult> FinalizeDonorLinkAsync(ApplicationUser user, int supporterId)
+    {
+        var exists = await _mainAppDbContext.Supporters.AnyAsync(s => s.SupporterId == supporterId);
+        if (!exists)
+            return BadRequest(new { error = "Supporter record was not found." });
+
+        if (!await _userManager.IsInRoleAsync(user, AuthRoles.Donor))
+        {
+            var roleResult = await _userManager.AddToRoleAsync(user, AuthRoles.Donor);
+            if (!roleResult.Succeeded)
+            {
+                return StatusCode(500, new { error = "Unable to assign donor role." });
+            }
+        }
+
+        var existingClaims = await _userManager.GetClaimsAsync(user);
+        foreach (var c in existingClaims.Where(c => c.Type == SupporterIdClaimType))
+        {
+            var remove = await _userManager.RemoveClaimAsync(user, c);
+            if (!remove.Succeeded)
+                return StatusCode(500, new { error = "Unable to update donor profile link." });
+        }
+
+        var addClaim = await _userManager.AddClaimAsync(
+            user,
+            new Claim(SupporterIdClaimType, supporterId.ToString()));
+
+        if (!addClaim.Succeeded)
+            return StatusCode(500, new { error = "Unable to link donor profile." });
+
+        await _signInManager.RefreshSignInAsync(user);
+        return Ok(new { linked = true });
+    }
+
     private static string? ValidateSupporterCreateFields(RegisterDto dto)
     {
         var supporterType = dto.SupporterType.Trim();

@@ -1,4 +1,6 @@
+import { useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/shared/AppHeader';
+import StaffDonateInfoModal from '@/components/shared/StaffDonateInfoModal';
 import PublicFooter from '@/components/shared/PublicFooter';
 import { featuredStory, restorationStories } from '@/data/featuredStory';
 import {
@@ -6,8 +8,11 @@ import {
   useOutcomeDistribution,
   useMonthlyDonationTrend,
 } from '@/hooks/useImpact';
+import { usePublicDonateClick } from '@/hooks/usePublicDonateClick';
 
 export default function ImpactDashboardPage() {
+  const navigate = useNavigate();
+  const { onDonateClick, staffDonateModalOpen, setStaffDonateModalOpen } = usePublicDonateClick();
   const summary = useImpactSummary();
   const outcomesQuery = useOutcomeDistribution();
   const trendQuery = useMonthlyDonationTrend();
@@ -69,6 +74,8 @@ export default function ImpactDashboardPage() {
               </p>
               <div className="flex flex-wrap gap-3 sm:gap-4">
                 <button
+                  type="button"
+                  onClick={onDonateClick}
                   className="px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-full bg-primary text-white text-base sm:text-lg font-medium hover:bg-primary/90 transition-colors shadow-sm"
                   aria-label="Donate now to support Safe Harbor"
                 >
@@ -314,6 +321,12 @@ export default function ImpactDashboardPage() {
           </div>
         </div>
       </section>
+
+      <StaffDonateInfoModal
+        open={staffDonateModalOpen}
+        onClose={() => setStaffDonateModalOpen(false)}
+        onLinked={() => navigate('/donor')}
+      />
 
       <PublicFooter />
     </div>

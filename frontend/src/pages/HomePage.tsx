@@ -1,13 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/shared/AppHeader';
+import StaffDonateInfoModal from '@/components/shared/StaffDonateInfoModal';
 import PublicFooter from '@/components/shared/PublicFooter';
 import { useHomepageStats } from '@/hooks/usePublicImpact';
-import { useAuth } from '@/context/AuthContext';
+import { usePublicDonateClick } from '@/hooks/usePublicDonateClick';
 
 export default function HomePage() {
   const { data, loading, isMock } = useHomepageStats();
-  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { onDonateClick, staffDonateModalOpen, setStaffDonateModalOpen } = usePublicDonateClick();
 
   const stats = [
     { label: 'Girls supported', value: data.girlsSupported },
@@ -42,14 +43,6 @@ export default function HomePage() {
     },
   ];
 
-  function handleDonateClick() {
-    if (isAuthenticated) {
-      navigate('/donor');
-      return;
-    }
-    navigate('/login?redirect=%2Fdonor');
-  }
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-1">
@@ -79,7 +72,7 @@ export default function HomePage() {
                 <div className="flex flex-wrap gap-3 sm:gap-4">
                   <button
                     type="button"
-                    onClick={handleDonateClick}
+                    onClick={onDonateClick}
                     className="inline-flex items-center justify-center min-h-[48px] px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-full bg-primary text-white text-base sm:text-lg font-medium hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap"
                   >
                     Donate
@@ -160,6 +153,12 @@ export default function HomePage() {
           </div>
         </section>
       </main>
+
+      <StaffDonateInfoModal
+        open={staffDonateModalOpen}
+        onClose={() => setStaffDonateModalOpen(false)}
+        onLinked={() => navigate('/donor')}
+      />
 
       <PublicFooter />
     </div>
