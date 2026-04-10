@@ -24,7 +24,8 @@ public class AdminDashboardController : ControllerBase
         int UpcomingReviews,
         int AvgProgress,
         double AvgHealthScore,
-        int IncidentCount);
+        int IncidentCount,
+        double ReintegrationRate);
 
     public record SafehouseDto(
         int SafehouseId,
@@ -300,13 +301,21 @@ public class AdminDashboardController : ControllerBase
             var avgHealthScore = derived.AvgHealthOverall;
             var incidentCount = latestMetrics.Sum(m => m.IncidentCount);
 
+            var totalResidents = await _context.Residents.CountAsync();
+            var completedReintegrations = await _context.Residents
+                .CountAsync(r => r.ReintegrationStatus == "Completed");
+            var reintegrationRate = totalResidents > 0
+                ? Math.Round(completedReintegrations * 100.0 / totalResidents, 1)
+                : 0;
+
             return Ok(new KpisDto(
                 activeResidents,
                 recentDonationsAmount,
                 upcomingReviews,
                 (int)Math.Round(avgProgress),
                 Math.Round(avgHealthScore, 2),
-                incidentCount));
+                incidentCount,
+                reintegrationRate));
         }
         catch (Exception ex)
         {

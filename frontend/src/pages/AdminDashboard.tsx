@@ -119,6 +119,15 @@ export default function AdminDashboardPage() {
 
   const kpiCards = [
     {
+      label: 'Reintegration Rate',
+      value: kpis.loading
+        ? '…'
+        : kpis.data
+          ? `${kpis.data.reintegrationRate}%`
+          : '—',
+      sub: 'Completed / all residents' as string | null,
+    },
+    {
       label: 'Active Residents',
       value: kpis.loading
         ? '…'
