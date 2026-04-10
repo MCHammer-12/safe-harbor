@@ -510,7 +510,10 @@ public class MlController : ControllerBase
             if (!maxDonationDate.HasValue)
                 return Ok(Array.Empty<DonorHighValueScoreRow>());
 
-            asOfDate = new DateOnly(maxDonationDate.Value.Year, maxDonationDate.Value.Month, 1);
+            // Feature builder caps snapshots at max_donation_month - 12mo (training lookahead).
+            // Subtract 13 months so we land in the latest available snapshot window.
+            asOfDate = new DateOnly(maxDonationDate.Value.Year, maxDonationDate.Value.Month, 1)
+                .AddMonths(-13);
         }
 
         var supporterIds = await _context.Supporters.AsNoTracking()
