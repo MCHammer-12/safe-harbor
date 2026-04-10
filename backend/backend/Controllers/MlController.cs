@@ -49,6 +49,8 @@ public class MlController : ControllerBase
         if (string.IsNullOrWhiteSpace(baseUrl))
             return null;
         var client = _httpClientFactory.CreateClient("MlApi");
+        // Force current resolved URL per request so stale startup config cannot pin localhost.
+        client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
         return client;
     }
 
