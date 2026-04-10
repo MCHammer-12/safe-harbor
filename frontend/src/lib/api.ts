@@ -11,11 +11,8 @@ function resolveApiBaseUrl(): string {
   if (raw !== undefined && String(raw).trim() !== '') {
     return String(raw).trim().replace(/\/$/, '');
   }
-  // Dev: relative /api so Vite proxies to the backend (see vite.config.ts). No CORS; works with `dotnet run` http profile.
-  if (import.meta.env.DEV) {
-    return '';
-  }
-  return 'http://localhost:5176';
+  // Relative paths — Vite proxy in dev, same-origin in prod (served from .NET wwwroot)
+  return '';
 }
 
 const API_BASE_URL: string = resolveApiBaseUrl();

@@ -1,6 +1,7 @@
 # .NET
 bin/
 obj/
+backend/backend/wwwroot/
 *.user
 *.suo
 *.vs/
