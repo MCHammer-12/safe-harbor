@@ -144,10 +144,10 @@ function PrivacyPolicyPage() {
               <p className="font-sans text-base leading-7 text-foreground">
                 For questions about this policy, contact us at{' '}
                 <a
-                  href="mailto:support@example.com"
+                  href="mailto:hello@safeharbor.com"
                   className="font-medium text-primary underline-offset-4 hover:underline"
                 >
-                  support@example.com
+                  hello@safeharbor.org
                 </a>
               </p>
             </section>
