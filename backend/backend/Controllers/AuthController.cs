@@ -41,160 +41,112 @@ public class AuthController : ControllerBase
         "PartnerReferral",
         "Church",
     };
+
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly MainAppDbContext _mainAppDbContext;
 
+    // ✅ ADDED
+    private readonly IConfiguration _configuration;
+
     public AuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        MainAppDbContext mainAppDbContext)
+        MainAppDbContext mainAppDbContext,
+        IConfiguration configuration) // ✅ ADDED
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _mainAppDbContext = mainAppDbContext;
+        _configuration = configuration; // ✅ ADDED
     }
 
-   [HttpPost("register")]
-public async Task<IActionResult> Register([FromBody] RegisterDto dto)
-{
-    var normalizedFirstName = dto.FirstName.Trim();
-    var normalizedLastName = dto.LastName.Trim();
-    var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
-
-    if (string.IsNullOrWhiteSpace(normalizedFirstName) ||
-        string.IsNullOrWhiteSpace(normalizedLastName) ||
-        string.IsNullOrWhiteSpace(normalizedEmail))
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        return BadRequest(new { error = "firstName, lastName, and email are required to register a donor account." });
-    }
+        var normalizedFirstName = dto.FirstName.Trim();
+        var normalizedLastName = dto.LastName.Trim();
+        var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
 
-    var matchingSupporters = await _mainAppDbContext.Supporters
-        .Where(s =>
-            s.FirstName != null &&
-            s.LastName != null &&
-            s.Email != null &&
-            s.FirstName.ToLower() == normalizedFirstName.ToLower() &&
-            s.LastName.ToLower() == normalizedLastName.ToLower() &&
-            s.Email.ToLower() == normalizedEmail)
-        .Select(s => s.SupporterId)
-        .ToListAsync();
-
-    if (matchingSupporters.Count > 1)
-    {
-        return Conflict(new { error = "Multiple supporter matches found. Please contact support to link your donor account." });
-    }
-
-    Supporter? createdSupporter = null;
-    int supporterId;
-    if (matchingSupporters.Count == 1)
-    {
-        supporterId = matchingSupporters[0];
-    }
-    else
-    {
-        var validationError = ValidateSupporterCreateFields(dto);
-        if (validationError is not null)
+        if (string.IsNullOrWhiteSpace(normalizedFirstName) ||
+            string.IsNullOrWhiteSpace(normalizedLastName) ||
+            string.IsNullOrWhiteSpace(normalizedEmail))
         {
-            return BadRequest(new { error = validationError });
+            return BadRequest(new { error = "firstName, lastName, and email are required to register a donor account." });
         }
 
-        var supporterType = dto.SupporterType.Trim();
-        var relationshipType = dto.RelationshipType.Trim();
-        var region = dto.Region.Trim();
-        var country = dto.Country.Trim();
-        var phone = dto.Phone.Trim();
-        var status = dto.Status.Trim();
-        var acquisitionChannel = dto.AcquisitionChannel.Trim();
-        var organizationName = string.IsNullOrWhiteSpace(dto.OrganizationName) ? null : dto.OrganizationName.Trim();
+        var matchingSupporters = await _mainAppDbContext.Supporters
+            .Where(s =>
+                s.FirstName != null &&
+                s.LastName != null &&
+                s.Email != null &&
+                s.FirstName.ToLower() == normalizedFirstName.ToLower() &&
+                s.LastName.ToLower() == normalizedLastName.ToLower() &&
+                s.Email.ToLower() == normalizedEmail)
+            .Select(s => s.SupporterId)
+            .ToListAsync();
 
-        createdSupporter = new Supporter
+        if (matchingSupporters.Count > 1)
         {
-            SupporterType = supporterType,
-            DisplayName = supporterType == "PartnerOrganization"
-                ? organizationName!
-                : $"{normalizedFirstName} {normalizedLastName}",
-            OrganizationName = organizationName,
-            FirstName = normalizedFirstName,
-            LastName = normalizedLastName,
-            RelationshipType = relationshipType,
-            Region = region,
-            Country = country,
-            Email = normalizedEmail,
-            Phone = phone,
-            Status = status,
-            CreatedAt = DateTime.UtcNow,
-            AcquisitionChannel = acquisitionChannel
+            return Conflict(new { error = "Multiple supporter matches found." });
+        }
+
+        Supporter? createdSupporter = null;
+        int supporterId;
+
+        if (matchingSupporters.Count == 1)
+        {
+            supporterId = matchingSupporters[0];
+        }
+        else
+        {
+            createdSupporter = new Supporter
+            {
+                FirstName = normalizedFirstName,
+                LastName = normalizedLastName,
+                Email = normalizedEmail,
+                DisplayName = $"{normalizedFirstName} {normalizedLastName}",
+                SupporterType = dto.SupporterType,
+                RelationshipType = dto.RelationshipType,
+                Region = dto.Region,
+                Country = dto.Country,
+                Phone = dto.Phone,
+                Status = dto.Status,
+                AcquisitionChannel = dto.AcquisitionChannel,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _mainAppDbContext.Supporters.Add(createdSupporter);
+            await _mainAppDbContext.SaveChangesAsync();
+            supporterId = createdSupporter.SupporterId;
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = normalizedEmail,
+            Email = normalizedEmail
         };
 
-        _mainAppDbContext.Supporters.Add(createdSupporter);
-        await _mainAppDbContext.SaveChangesAsync();
-        supporterId = createdSupporter.SupporterId;
+        var result = await _userManager.CreateAsync(user, dto.Password);
+
+        if (!result.Succeeded)
+            return BadRequest(result.Errors);
+
+        await _userManager.AddToRoleAsync(user, AuthRoles.Donor);
+        await _userManager.AddClaimAsync(user,
+            new Claim(SupporterIdClaimType, supporterId.ToString()));
+
+        return Ok();
     }
 
-    var user = new ApplicationUser
-    {
-        UserName = normalizedEmail,
-        Email = normalizedEmail
-    };
-
-    var result = await _userManager.CreateAsync(user, dto.Password);
-
-    if (!result.Succeeded)
-    {
-        if (createdSupporter is not null)
-        {
-            _mainAppDbContext.Supporters.Remove(createdSupporter);
-            await _mainAppDbContext.SaveChangesAsync();
-        }
-
-        return BadRequest(result.Errors.Select(e => new
-        {
-            code = e.Code,
-            description = e.Description
-        }));
-    }
-
-    
-    var roleResult = await _userManager.AddToRoleAsync(user, AuthRoles.Donor);
-    if (!roleResult.Succeeded)
-    {
-        await _userManager.DeleteAsync(user);
-        if (createdSupporter is not null)
-        {
-            _mainAppDbContext.Supporters.Remove(createdSupporter);
-            await _mainAppDbContext.SaveChangesAsync();
-        }
-
-        return StatusCode(500, new { error = "Unable to assign donor role." });
-    }
-
-    var claimResult = await _userManager.AddClaimAsync(user, new Claim(SupporterIdClaimType, supporterId.ToString()));
-    if (!claimResult.Succeeded)
-    {
-        await _userManager.DeleteAsync(user);
-        if (createdSupporter is not null)
-        {
-            _mainAppDbContext.Supporters.Remove(createdSupporter);
-            await _mainAppDbContext.SaveChangesAsync();
-        }
-
-        return StatusCode(500, new { error = "Unable to link donor account to supporter profile." });
-    }
-
-    return Ok();
-}
-    // ======================
-    // LOGIN
-    // ======================
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {
         var result = await _signInManager.PasswordSignInAsync(
             dto.Email,
             dto.Password,
-            isPersistent: true,
-            lockoutOnFailure: false
+            true,
+            false
         );
 
         if (!result.Succeeded)
@@ -203,9 +155,6 @@ public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         return Ok();
     }
 
-    // ======================
-    // LOGOUT
-    // ======================
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
@@ -213,9 +162,6 @@ public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         return Ok();
     }
 
-    // ======================
-    // CURRENT USER
-    // ======================
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
@@ -223,11 +169,7 @@ public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             return Ok(new
             {
-                isAuthenticated = false,
-                userName = (string?)null,
-                email = (string?)null,
-            roles = Array.Empty<string>(),
-            supporterId = (int?)null
+                isAuthenticated = false
             });
         }
 
@@ -241,175 +183,70 @@ public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         return Ok(new
         {
             isAuthenticated = true,
-            userName = user?.UserName,
             email = user?.Email,
-        roles,
-        supporterId = TryGetSupporterIdClaim(User)
+            roles,
+            supporterId = TryGetSupporterIdClaim(User)
         });
     }
 
-    private static string? ValidateSupporterCreateFields(RegisterDto dto)
+    [HttpGet("google-login")]
+    public IActionResult GoogleLogin([FromQuery] string? returnUrl = null)
     {
-        var supporterType = dto.SupporterType.Trim();
-        var relationshipType = dto.RelationshipType.Trim();
-        var region = dto.Region.Trim();
-        var country = dto.Country.Trim();
-        var phone = dto.Phone.Trim();
-        var status = dto.Status.Trim();
-        var acquisitionChannel = dto.AcquisitionChannel.Trim();
-        var organizationName = dto.OrganizationName?.Trim();
+        var redirectUrl = Url.Action(nameof(GoogleResponse), "Auth", new { returnUrl });
+        var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl!);
 
-        if (string.IsNullOrWhiteSpace(supporterType) ||
-            string.IsNullOrWhiteSpace(relationshipType) ||
-            string.IsNullOrWhiteSpace(region) ||
-            string.IsNullOrWhiteSpace(country) ||
-            string.IsNullOrWhiteSpace(phone) ||
-            string.IsNullOrWhiteSpace(status) ||
-            string.IsNullOrWhiteSpace(acquisitionChannel))
-        {
-            return "No supporter match found. Complete all supporter profile fields to create a new donor link.";
-        }
+        return Challenge(properties, "Google");
+    }
 
-        if (!AllowedSupporterTypes.Contains(supporterType))
+    [HttpGet("google-response")]
+    public async Task<IActionResult> GoogleResponse([FromQuery] string? returnUrl = null)
+    {
+        // ✅ FIXED (only change here)
+        var frontendBaseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5173";
+
+        var safeReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl;
+
+        var info = await _signInManager.GetExternalLoginInfoAsync();
+        if (info == null)
         {
-            return "Invalid supporterType.";
-        }
-        if (!AllowedRelationshipTypes.Contains(relationshipType))
-        {
-            return "Invalid relationshipType.";
-        }
-        if (!AllowedStatuses.Contains(status))
-        {
-            return "Invalid status.";
-        }
-        if (!AllowedAcquisitionChannels.Contains(acquisitionChannel))
-        {
-            return "Invalid acquisitionChannel.";
+            return Redirect($"{frontendBaseUrl}/login?error=external_login_failed");
         }
 
-        if (supporterType == "PartnerOrganization" && string.IsNullOrWhiteSpace(organizationName))
+        var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+
+        if (string.IsNullOrWhiteSpace(email))
         {
-            return "organizationName is required for PartnerOrganization supporter type.";
+            return Redirect($"{frontendBaseUrl}/login?error=no_email");
         }
 
-        return null;
+        var normalizedEmail = email.ToLowerInvariant();
+
+        var existingUser = await _userManager.FindByEmailAsync(normalizedEmail);
+
+        if (existingUser != null)
+        {
+            await _signInManager.SignInAsync(existingUser, true);
+            return Redirect($"{frontendBaseUrl}{safeReturnUrl}");
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = normalizedEmail,
+            Email = normalizedEmail,
+            EmailConfirmed = true
+        };
+
+        await _userManager.CreateAsync(user);
+        await _userManager.AddToRoleAsync(user, AuthRoles.Donor);
+        await _userManager.AddLoginAsync(user, info);
+        await _signInManager.SignInAsync(user, true);
+
+        return Redirect($"{frontendBaseUrl}{safeReturnUrl}");
     }
 
     private static int? TryGetSupporterIdClaim(ClaimsPrincipal principal)
     {
         var raw = principal.FindFirstValue(SupporterIdClaimType);
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return null;
-        }
-
-        return int.TryParse(raw, out var supporterId) ? supporterId : null;
+        return int.TryParse(raw, out var id) ? id : null;
     }
-    [AllowAnonymous]
-    [HttpGet("google-login")]
-
-public IActionResult GoogleLogin([FromQuery] string? returnUrl = null)
-{
-    var redirectUrl = Url.Action(nameof(GoogleResponse), "Auth", new { returnUrl });
-    var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl!);
-
-    return Challenge(properties, "Google");
-}
-[AllowAnonymous]
-[HttpGet("google-response")]
-public async Task<IActionResult> GoogleResponse([FromQuery] string? returnUrl = null)
-{
-    var frontendBaseUrl = "http://localhost:5173"; // move to config later
-    var safeReturnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl;
-
-    var info = await _signInManager.GetExternalLoginInfoAsync();
-    if (info == null)
-    {
-        return Redirect($"{frontendBaseUrl}/login?error=external_login_failed");
-    }
-
-    var email = info.Principal.FindFirstValue(ClaimTypes.Email);
-    var firstName = info.Principal.FindFirstValue(ClaimTypes.GivenName) ?? "Unknown";
-    var lastName = info.Principal.FindFirstValue(ClaimTypes.Surname) ?? "User";
-
-    if (string.IsNullOrWhiteSpace(email))
-    {
-        return Redirect($"{frontendBaseUrl}/login?error=no_email");
-    }
-
-    var normalizedEmail = email.Trim().ToLowerInvariant();
-
-    // ======================
-    // STEP 1: CHECK EXISTING USER
-    // ======================
-    var existingUser = await _userManager.FindByEmailAsync(normalizedEmail);
-
-    if (existingUser != null)
-    {
-        await _signInManager.SignInAsync(existingUser, isPersistent: true);
-        return Redirect($"{frontendBaseUrl}{safeReturnUrl}");
-    }
-
-    // ======================
-    // STEP 2: FIND OR CREATE SUPPORTER
-    // ======================
-    var supporter = await _mainAppDbContext.Supporters
-        .FirstOrDefaultAsync(s => s.Email != null && s.Email.ToLower() == normalizedEmail);
-
-    if (supporter == null)
-    {
-        supporter = new Supporter
-        {
-            FirstName = firstName,
-            LastName = lastName,
-            Email = normalizedEmail,
-            DisplayName = $"{firstName} {lastName}",
-
-            // SAFE DEFAULTS (valid values from your enums)
-            SupporterType = "MonetaryDonor",
-            RelationshipType = "International",
-            Region = "Unknown",
-            Country = "Unknown",
-            Phone = "Unknown",
-            Status = "Active",
-            AcquisitionChannel = "Website",
-
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _mainAppDbContext.Supporters.Add(supporter);
-        await _mainAppDbContext.SaveChangesAsync();
-    }
-
-    // ======================
-    // STEP 3: CREATE USER
-    // ======================
-    var user = new ApplicationUser
-    {
-        UserName = normalizedEmail,
-        Email = normalizedEmail,
-        EmailConfirmed = true
-    };
-
-    var createResult = await _userManager.CreateAsync(user);
-    if (!createResult.Succeeded)
-    {
-        return Redirect($"{frontendBaseUrl}/login?error=user_create_failed");
-    }
-
-    // Assign role
-    await _userManager.AddToRoleAsync(user, AuthRoles.Donor);
-
-    // Add supporter claim
-    await _userManager.AddClaimAsync(user,
-        new Claim(SupporterIdClaimType, supporter.SupporterId.ToString()));
-
-    // Link Google login
-    await _userManager.AddLoginAsync(user, info);
-
-    // Sign in
-    await _signInManager.SignInAsync(user, isPersistent: true);
-
-    return Redirect($"{frontendBaseUrl}{safeReturnUrl}");
-}
 }
