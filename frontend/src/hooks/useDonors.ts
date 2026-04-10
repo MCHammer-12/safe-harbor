@@ -195,7 +195,15 @@ export function useSupporters(filters: SupporterFilters = {}): QueryState<Suppor
       } else {
         // Mock fallback with client-side filtering
         let items = MOCK_SUPPORTERS;
-        if (type) items = items.filter((s) => s.supporterType === type);
+        if (type) {
+          if (type === 'Organization') {
+            items = items.filter((s) => s.supporterType === 'Organization');
+          } else if (type === 'Individual') {
+            items = items.filter((s) => s.supporterType !== 'Organization');
+          } else {
+            items = items.filter((s) => s.supporterType === type);
+          }
+        }
         if (status) items = items.filter((s) => s.status === status);
         if (search) {
           const term = search.toLowerCase();

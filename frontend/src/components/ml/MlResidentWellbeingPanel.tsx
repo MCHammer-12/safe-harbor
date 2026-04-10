@@ -40,8 +40,8 @@ export default function MlResidentWellbeingPanel() {
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">ML — IS 455</p>
-          <h2 className="text-xl font-serif text-foreground">Live ML — next-month wellbeing</h2>
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">INSIGHTS - PREDICTIVE</p>
+          <h2 className="text-xl font-serif text-foreground">Next-month wellbeing</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Helps staff spot residents who may need extra support next month, so help can be planned
             earlier and outcomes improve. Wellbeing is scored on a 1-5 scale.
@@ -68,7 +68,7 @@ export default function MlResidentWellbeingPanel() {
         </p>
       )}
       {!loading && rows && rows.length > 0 && (
-        <div className="overflow-x-auto">
+        <div>
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border text-muted-foreground uppercase text-xs tracking-wide">

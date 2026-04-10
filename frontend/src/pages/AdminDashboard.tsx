@@ -12,6 +12,7 @@ import {
 import { apiGet } from '@/lib/api';
 import { formatPhp, phpToUsdTooltip } from '@/lib/currencyPhp';
 import InlineHoverTooltip from '@/components/shared/InlineHoverTooltip';
+import QuestionTooltip from '@/components/shared/QuestionTooltip';
 
 interface PagedResult<T> {
   items: T[];
@@ -255,7 +256,7 @@ export default function AdminDashboardPage() {
               }) => (
                 <div
                   key={safehouseId}
-                  className="rounded-2xl border border-border overflow-hidden bg-background hover:border-primary/30 transition-colors"
+                  className="rounded-2xl border border-border overflow-visible bg-background hover:border-primary/30 transition-colors"
                   aria-label={`${name}: ${status}, ${occupied}/${capacity} occupied`}
                 >
                   <div className="p-5 sm:p-6">
@@ -299,13 +300,34 @@ export default function AdminDashboardPage() {
                     <p className="text-xs text-muted-foreground mt-2 text-right font-medium">{pct}% Full</p>
                     <div className="mt-4 pt-3 border-t border-border/60 grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-3 text-xs">
                       <p className="text-muted-foreground">
-                        Health score: <span className="text-foreground font-semibold">{formatHealthScore(avgHealthScore)}</span>
+                        <QuestionTooltip
+                          label="What health score means"
+                          text="Average wellbeing rating for active residents in this safehouse based on the latest health and wellbeing records."
+                          align="left"
+                        />
+                        {' '}
+                        Health score
+                        : <span className="text-foreground font-semibold">{formatHealthScore(avgHealthScore)}</span>
                       </p>
                       <p className="text-muted-foreground sm:text-right">
-                        Edu progress: <span className="text-foreground font-semibold">{avgEducationProgress}%</span>
+                        <QuestionTooltip
+                          label="What education progress means"
+                          text="Average education progress percentage for active residents in this safehouse from the latest education records."
+                          align="right"
+                        />
+                        {' '}
+                        Edu progress
+                        : <span className="text-foreground font-semibold">{avgEducationProgress}%</span>
                       </p>
                       <p className="text-muted-foreground sm:col-span-2">
-                        Incidents this month: <span className="text-foreground font-semibold">{incidentCount}</span>
+                        <QuestionTooltip
+                          label="What incidents this month means"
+                          text="Count of reported incidents for this safehouse in the most recent monthly metrics period."
+                          align="left"
+                        />
+                        {' '}
+                        Incidents this month
+                        : <span className="text-foreground font-semibold">{incidentCount}</span>
                       </p>
                     </div>
                   </div>
@@ -364,13 +386,23 @@ export default function AdminDashboardPage() {
                   const value = d[weeklyMetric];
                   const h = Math.round((value / maxWeekly) * 100);
                   const xLabel = formatWeekRange(d.date);
+                  const tooltipText =
+                    weeklyMetric === 'donations'
+                      ? null
+                      : `${value.toLocaleString()} ${weeklyMetric === 'homeVisitations' ? 'visits' : 'recordings'}`;
                   return (
                     <div key={d.date} className="flex-1 h-full flex flex-col items-center justify-end gap-2 group">
-                      <div
-                        className="w-full bg-primary/80 rounded-t-sm group-hover:bg-primary transition-colors min-h-[2px]"
-                        style={{ height: `${h}%` }}
-                        aria-label={`${xLabel}: ${value} ${weeklyMetricLabel.toLowerCase()}`}
-                      />
+                      <div className="relative w-full" style={{ height: `${h}%` }}>
+                        <div
+                          className="h-full w-full bg-primary/80 rounded-t-sm group-hover:bg-primary transition-colors min-h-[2px]"
+                          aria-label={`${xLabel}: ${value} ${weeklyMetricLabel.toLowerCase()}`}
+                        />
+                        {tooltipText ? (
+                          <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 w-max max-w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 rounded-md border border-border bg-white px-2.5 py-2 text-xs leading-5 font-sans font-normal normal-case tracking-normal text-foreground shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
+                            {tooltipText}
+                          </span>
+                        ) : null}
+                      </div>
                       <span
                         className="text-[10px] text-white/50 font-medium uppercase tracking-wider text-center leading-tight"
                       >

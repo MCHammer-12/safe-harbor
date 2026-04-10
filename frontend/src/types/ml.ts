@@ -40,6 +40,7 @@ export interface ResidentWellbeingScoreRow {
 
 export interface DonorHighValueScoreRow {
   supporterId: number;
+  displayName?: string;
   highValueProbability: number;
   error: string | null;
 }

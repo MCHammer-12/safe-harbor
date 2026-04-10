@@ -40,38 +40,36 @@ export default function MlSocialEngagementForecastPanel() {
         </p>
       )}
       {!loading && rows && rows.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground uppercase text-xs tracking-wide">
-                <th className="py-2 pr-4">Month</th>
-                <th className="py-2 pr-4">
-                  Predicted next monetary
-                  <QuestionTooltip
-                    label="What predicted next monetary means"
-                    text="This is the model's estimate of donation value for the next month based on recent social media results."
-                  />
-                </th>
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-border text-muted-foreground uppercase text-xs tracking-wide">
+              <th className="py-2 pr-4">Month</th>
+              <th className="py-2 pr-4">
+                Predicted next monetary
+                <QuestionTooltip
+                  label="What predicted next monetary means"
+                  text="This is the model's estimate of donation value for the next month based on recent social media results."
+                />
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.month} className="border-b border-border/60">
+                <td className="py-2 pr-4 font-mono">{r.month}</td>
+                <td className="py-2 pr-4">
+                  {r.error ? (
+                    <span className="text-destructive text-xs">{r.error}</span>
+                  ) : (
+                    <InlineHoverTooltip text={phpToUsdTooltip(r.predictedNextMonetary)}>
+                      {formatPhp(r.predictedNextMonetary)}
+                    </InlineHoverTooltip>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.month} className="border-b border-border/60">
-                  <td className="py-2 pr-4 font-mono">{r.month}</td>
-                  <td className="py-2 pr-4">
-                    {r.error ? (
-                      <span className="text-destructive text-xs">{r.error}</span>
-                    ) : (
-                      <InlineHoverTooltip text={phpToUsdTooltip(r.predictedNextMonetary)}>
-                        {formatPhp(r.predictedNextMonetary)}
-                      </InlineHoverTooltip>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       )}
     </section>
   );

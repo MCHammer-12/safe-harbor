@@ -50,7 +50,7 @@ export function formatUsdFromPhp(phpAmount: number): string {
 }
 
 export function phpToUsdTooltip(phpAmount: number): string {
-  return `Approx. ${formatUsdFromPhp(phpAmount)} USD`;
+  return `${formatUsdFromPhp(phpAmount)} USD`;
 }
 
 /** True when we show values as native PHP (no foreign formatting in history). */

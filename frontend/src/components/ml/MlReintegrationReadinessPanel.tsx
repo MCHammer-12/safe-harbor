@@ -40,8 +40,8 @@ export default function MlReintegrationReadinessPanel() {
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">ML - IS 455</p>
-          <h2 className="text-xl font-serif text-foreground">Live ML - reintegration readiness</h2>
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">INSIGHTS - PREDICTIVE</p>
+          <h2 className="text-xl font-serif text-foreground">Reintegration readiness</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Helps staff identify who is most ready for reintegration planning, so case meetings focus
             on the right residents first.

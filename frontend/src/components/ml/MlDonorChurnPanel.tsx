@@ -35,13 +35,13 @@ export default function MlDonorChurnPanel({ page: _page, pageSize: _pageSize, to
 
   return (
     <section
-      className="rounded-2xl border border-border bg-white shadow-sm p-6 mb-0"
+      className="rounded-2xl border border-border bg-white shadow-sm p-6 mb-8"
       aria-label="Live ML donor churn scores"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">ML — IS 455</p>
-          <h2 className="text-xl font-serif text-foreground">Live ML — donor churn (90d)</h2>
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">INSIGHTS - PREDICTIVE</p>
+          <h2 className="text-xl font-serif text-foreground">Donor churn (90d)</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Helps the team quickly see which donors are most likely to stop giving soon, so outreach
             can happen earlier and keep support steady.
@@ -99,7 +99,7 @@ export default function MlDonorChurnPanel({ page: _page, pageSize: _pageSize, to
             <tbody>
               {sortedRows.map((r) => (
                 <tr key={r.supporterId} className="border-b border-border/60">
-                  <td className="py-2 pr-4">{r.displayName ?? r.supporterId}</td>
+                  <td className="py-2 pr-4">{r.displayName ?? `Supporter ${r.supporterId}`}</td>
                   <td className="py-2 pr-4">
                     {r.error ? (
                       <span className="text-destructive text-xs">{r.error}</span>

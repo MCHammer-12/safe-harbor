@@ -43,8 +43,8 @@ public class AdminDashboardController : ControllerBase
         string Date,
         int ProcessRecordings,
         int HomeVisitations,
-        int Donations,
-        int Total);
+        double Donations,
+        double Total);
 
     public record RecentActivityDto(
         string Title,
@@ -409,7 +409,7 @@ public class AdminDashboardController : ControllerBase
 
             var donList = await _context.Donations
                 .Where(d => d.DonationDate != null && d.DonationDate >= windowStart && d.DonationDate <= anchor)
-                .Select(d => d.DonationDate!.Value)
+                .Select(d => new { Date = d.DonationDate!.Value, d.EstimatedValue, d.CurrencyCode })
                 .ToListAsync();
 
             var result = new List<WeeklyActivityDto>();
@@ -419,7 +419,9 @@ public class AdminDashboardController : ControllerBase
                 var bucketEnd = bucketStart.AddDays(6);
                 var pr = prList.Count(d => d >= bucketStart && d <= bucketEnd);
                 var hv = hvList.Count(d => d >= bucketStart && d <= bucketEnd);
-                var dn = donList.Count(d => d >= bucketStart && d <= bucketEnd);
+                var dn = donList
+                    .Where(d => d.Date >= bucketStart && d.Date <= bucketEnd)
+                    .Sum(d => CurrencyToPhp.Convert(d.EstimatedValue, d.CurrencyCode));
                 var label = $"W{i + 1}";
                 result.Add(new WeeklyActivityDto(label, bucketStart.ToString("yyyy-MM-dd"), pr, hv, dn, pr + hv + dn));
             }

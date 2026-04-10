@@ -1,9 +1,17 @@
 type QuestionTooltipProps = {
   label: string;
   text: string;
+  align?: 'center' | 'left' | 'right';
 };
 
-export default function QuestionTooltip({ label, text }: QuestionTooltipProps) {
+export default function QuestionTooltip({ label, text, align = 'center' }: QuestionTooltipProps) {
+  const tooltipAlignClass =
+    align === 'left'
+      ? 'left-0 translate-x-0'
+      : align === 'right'
+        ? 'right-0 translate-x-0'
+        : 'left-1/2 -translate-x-1/2';
+
   return (
     <span className="relative inline-flex group ml-1 align-middle">
       <span
@@ -13,7 +21,9 @@ export default function QuestionTooltip({ label, text }: QuestionTooltipProps) {
       >
         ?
       </span>
-      <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 w-max max-w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 rounded-md border border-border bg-white p-2 text-[11px] font-normal normal-case tracking-normal text-foreground shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      <span
+        className={`pointer-events-none absolute top-full z-10 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-white px-3 py-2.5 text-left text-xs leading-5 font-sans font-normal normal-case tracking-normal text-foreground shadow-md whitespace-normal break-words opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 sm:w-72 ${tooltipAlignClass}`}
+      >
         {text}
       </span>
     </span>

@@ -1,24 +1,27 @@
+import PublicFooter from '@/components/shared/PublicFooter';
+
 function PrivacyPolicyPage() {
   return (
-    <div className="min-h-[calc(100svh-72px)] bg-background py-8 md:py-10">
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="mx-auto w-full max-w-3xl">
-          {/* Header */}
-          <div className="mb-8 rounded-3xl border border-border/70 bg-white px-6 py-7 text-center shadow-sm md:mb-10 md:px-8">
-            <h1 className="mb-3 font-serif text-[clamp(2rem,4.5vw,3rem)] font-semibold text-foreground">
-              Privacy Policy
-            </h1>
-            <p className="mb-1 font-sans text-sm text-muted-foreground">
-              Effective Date: April 9, 2026
-            </p>
-            <p className="mx-auto mt-4 max-w-2xl font-sans text-base leading-7 text-foreground">
-              We value your privacy and are committed to protecting your personal
-              information. This policy explains how we collect, use, and safeguard your data.
-            </p>
-          </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      <main className="flex-1 py-8 md:py-10">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <div className="mx-auto w-full max-w-3xl">
+            {/* Header */}
+            <div className="mb-8 rounded-3xl border border-border/70 bg-white px-6 py-7 text-center shadow-sm md:mb-10 md:px-8">
+              <h1 className="mb-3 font-serif text-[clamp(2rem,4.5vw,3rem)] font-semibold text-foreground">
+                Privacy Policy
+              </h1>
+              <p className="mb-1 font-sans text-sm text-muted-foreground">
+                Effective Date: April 9, 2026
+              </p>
+              <p className="mx-auto mt-4 max-w-2xl font-sans text-base leading-7 text-foreground">
+                We value your privacy and are committed to protecting your personal
+                information. This policy explains how we collect, use, and safeguard your data.
+              </p>
+            </div>
 
-          {/* Content */}
-          <div className="rounded-3xl border border-border/70 bg-white p-5 shadow-sm md:p-8">
+            {/* Content */}
+            <div className="rounded-3xl border border-border/70 bg-white p-5 shadow-sm md:p-8">
             <section className="mb-7 border-b border-border/50 pb-7 last:mb-0 last:border-b-0 last:pb-0">
               <h2 className="mb-3 font-serif text-[clamp(1.4rem,2.8vw,1.9rem)] font-semibold text-foreground">
                 1. Information We Collect
@@ -151,9 +154,11 @@ function PrivacyPolicyPage() {
                 </a>
               </p>
             </section>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+      <PublicFooter />
     </div>
   );
 }

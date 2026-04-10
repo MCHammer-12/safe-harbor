@@ -105,7 +105,21 @@ public class SupportersController : ControllerBase
         var q = _context.Supporters.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(type))
-            q = q.Where(s => s.SupporterType == type);
+        {
+            var normalizedType = type.Trim();
+            if (string.Equals(normalizedType, "Organization", StringComparison.OrdinalIgnoreCase))
+            {
+                q = q.Where(s => s.SupporterType == "PartnerOrganization");
+            }
+            else if (string.Equals(normalizedType, "Individual", StringComparison.OrdinalIgnoreCase))
+            {
+                q = q.Where(s => s.SupporterType != "PartnerOrganization");
+            }
+            else
+            {
+                q = q.Where(s => s.SupporterType == normalizedType);
+            }
+        }
         if (!string.IsNullOrWhiteSpace(status))
             q = q.Where(s => s.Status == status);
         if (!string.IsNullOrWhiteSpace(search))
