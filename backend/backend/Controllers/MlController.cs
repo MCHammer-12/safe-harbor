@@ -52,6 +52,60 @@ public class MlController : ControllerBase
         return client;
     }
 
+    /// <summary>
+    /// Admin-only: exact runtime ML config + env key presence (no secrets) + direct outbound GET /health (bypasses named HttpClient).
+    /// Open in browser while logged in as Admin: GET /api/Ml/config-probe
+    /// </summary>
+    [HttpGet("config-probe")]
+    public async Task<ActionResult<object>> GetConfigProbe(CancellationToken ct)
+    {
+        var cfgRaw = _configuration["Ml:BaseUrl"]?.Trim();
+        var resolved = MlAppSettings.ResolveBaseUrl(_configuration);
+        var apiKey = MlAppSettings.ResolveApiKey(_configuration);
+
+        int? outboundStatus = null;
+        string? outboundError = null;
+        if (!string.IsNullOrWhiteSpace(resolved))
+        {
+            try
+            {
+                using var probe = new HttpClient
+                {
+                    BaseAddress = new Uri(resolved.TrimEnd('/') + "/"),
+                    Timeout = TimeSpan.FromSeconds(20),
+                };
+                if (!string.IsNullOrEmpty(apiKey))
+                    probe.DefaultRequestHeaders.TryAddWithoutValidation("X-ML-API-Key", apiKey);
+
+                using var r = await probe.GetAsync("health", ct);
+                outboundStatus = (int)r.StatusCode;
+            }
+            catch (Exception ex)
+            {
+                outboundError = $"{ex.GetType().Name}: {ex.Message}";
+            }
+        }
+
+        static bool EnvSet(string k) => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(k));
+
+        return Ok(new
+        {
+            checkedAtUtc = DateTime.UtcNow,
+            aspNetCoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+            websiteInstanceIdPresent = EnvSet("WEBSITE_INSTANCE_ID"),
+            configuration_Ml_BaseUrl_raw = string.IsNullOrEmpty(cfgRaw) ? null : cfgRaw,
+            effectiveResolvedBaseUrl = resolved,
+            effectiveHost = MlBaseUrlHostOnly(resolved),
+            apiKeyConfigured = !string.IsNullOrEmpty(apiKey),
+            env_Ml__BaseUrl = EnvSet("Ml__BaseUrl"),
+            env_APPSETTING_Ml__BaseUrl = EnvSet("APPSETTING_Ml__BaseUrl"),
+            env_Ml_BaseUrl_typo = EnvSet("Ml_BaseUrl"),
+            env_APPSETTING_Ml_BaseUrl_typo = EnvSet("APPSETTING_Ml_BaseUrl"),
+            directOutboundGetHealth_statusCode = outboundStatus,
+            directOutboundGetHealth_error = outboundError,
+        });
+    }
+
     [HttpGet("deployment-status")]
     public async Task<ActionResult<object>> GetDeploymentStatus(CancellationToken ct)
     {
