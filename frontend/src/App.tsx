@@ -3,6 +3,9 @@ import type { ReactElement } from 'react';
 import NotFound from '@/pages/not-found';
 import HomePage from '@/pages/HomePage';
 import ImpactDashboardPage from '@/pages/ImpactDashboard';
+import StorySilenceToVoicePage from '@/pages/story-silence-to-voice';
+import StoryReconnectingWithFamilyPage from '@/pages/story-reconnecting-with-family';
+import StoryAcademicExcellencePage from '@/pages/story-academic-excellence';
 import AdminDashboardPage from '@/pages/AdminDashboard';
 import CaseloadInventoryPage from '@/pages/CaseloadInventory';
 import DonorDashboardPage from '@/pages/DonorDashboard';
@@ -60,6 +63,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/impact" element={<ImpactDashboardPage />} />
+        <Route path="/impact/stories/silence-to-voice" element={<StorySilenceToVoicePage />} />
+        <Route path="/impact/stories/reconnecting-with-family" element={<StoryReconnectingWithFamilyPage />} />
+        <Route path="/impact/stories/academic-excellence" element={<StoryAcademicExcellencePage />} />
         <Route
           path="/donor"
           element={
