@@ -165,4 +165,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Serve React frontend from wwwroot/ (Vite build output)
+app.UseDefaultFiles();
+app.UseStaticFiles();
+app.MapFallbackToFile("index.html");
+
 app.Run();
