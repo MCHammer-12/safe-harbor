@@ -8,7 +8,7 @@ INTEX W26 capstone project for IS 401 (PM), IS 413 (Dev), IS 414 (Security), IS 
 
 **Phase:** Thursday Apr 9 — iterate + polish day, T-1 from final submission.
 **Sprint:** Thursday — IS 401 iterate deliverables.
-**Deployed/Target:** Frontend on Vercel (auto-deploy on main). Backend runs locally against live Azure SQL `intexserverdatabase.database.windows.net / IntexDB`. Identity DB on same server, separate `AuthDB` catalog. ML FastAPI service runs locally on :8010.
+**Deployed/Target:** Frontend + backend combined on Azure App Service `safe-harbor-app-cbhbghfvgzerf5f4.canadacentral-01.azurewebsites.net` (Free F1, .NET 10, Windows, Canada Central). React SPA served from wwwroot/. Both DBs on Azure SQL `intexserverdatabase.database.windows.net` (IntexDB + AuthDB). ML FastAPI service runs locally on :8010. Old Vercel/SWA frontends still exist but are superseded.
 
 ### What exists
 - **Public pages:** `/` (Home with Our Mission section), `/impact`, `/contact`, `/privacy`, `/login`, `/register`, `/logout`
@@ -34,12 +34,13 @@ INTEX W26 capstone project for IS 401 (PM), IS 413 (Dev), IS 414 (Security), IS 
 - Backend Identity: `backend/backend/Models/AuthIdentityDbContext.cs`, `Models/AuthIdentityGenerator.cs`, `Controllers/AuthController.cs`
 
 ### What's needed next
-- Azure SWA staging slot cap is full -- clean up old PR environments in portal so PR previews can deploy again (Vercel still works for prod)
-- Backend deployment to Azure App Service (currently local-only)
-- Lighthouse a11y ≥ 90% audit
+- Merge PR #45 (prod deploy fixes -- conditional OAuth, static files public)
+- Set up GitHub Actions for auto-deploy to App Service (needs bwood02 to authorize Azure, or write workflow manually)
+- Lighthouse a11y >= 90% audit
 - 5 page screenshots desktop+mobile for IS 401 Thursday deliverable
 - User feedback session, retrospective, OKR metric, burndown update
 - Final submission Friday 10am
+- Old Vercel/SWA frontends can be decommissioned
 
 ## Tech Stack
 
