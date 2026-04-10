@@ -5,6 +5,7 @@ import type { DonorHighValueScoreRow } from '@/types/ml';
 function normalizeRow(raw: Record<string, unknown>): DonorHighValueScoreRow {
   return {
     supporterId: Number(raw.supporterId ?? raw.supporter_id),
+    displayName: raw.displayName != null ? String(raw.displayName) : undefined,
     highValueProbability: Number(raw.highValueProbability ?? raw.high_value_probability ?? 0),
     error: raw.error != null ? String(raw.error) : null,
   };

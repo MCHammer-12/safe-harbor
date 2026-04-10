@@ -284,9 +284,6 @@ public class MlController : ControllerBase
 
         var supporters = await _context.Supporters
             .AsNoTracking()
-            .OrderBy(s => s.DisplayName)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
             .Select(s => new
             {
                 s.SupporterId,
@@ -359,17 +356,25 @@ public class MlController : ControllerBase
         var scoreIds = scores.Select(s => s.SupporterId).ToList();
         var nameMap = await _context.Supporters.AsNoTracking()
             .Where(s => scoreIds.Contains(s.SupporterId))
-            .ToDictionaryAsync(s => s.SupporterId, s => s.DisplayName, ct);
+            .ToDictionaryAsync(
+                s => s.SupporterId,
+                s => BuildSupporterLabel(s.DisplayName, s.OrganizationName, s.FirstName, s.LastName, s.Email, s.SupporterId),
+                ct);
 
         var rows = scores.Select(s => new DonorChurnScoreRow
         {
             SupporterId = s.SupporterId,
-            DisplayName = nameMap.GetValueOrDefault(s.SupporterId),
+            DisplayName = nameMap.GetValueOrDefault(s.SupporterId, $"Supporter {s.SupporterId}"),
             ChurnProbability = s.ChurnProbability,
             Tier = s.Tier ?? "",
             RecommendedAction = s.RecommendedAction ?? "",
             Error = s.Error,
-        }).ToList();
+        })
+        .OrderBy(r => r.Error != null)
+        .ThenByDescending(r => r.ChurnProbability)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .ToList();
 
         return Ok(rows);
     }
@@ -461,6 +466,7 @@ public class MlController : ControllerBase
     public class DonorHighValueScoreRow
     {
         public int SupporterId { get; set; }
+        public string DisplayName { get; set; } = "";
         public double HighValueProbability { get; set; }
         public string? Error { get; set; }
     }
@@ -517,9 +523,6 @@ public class MlController : ControllerBase
         }
 
         var supporterIds = await _context.Supporters.AsNoTracking()
-            .OrderBy(s => s.DisplayName)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
             .Select(s => s.SupporterId)
             .ToListAsync(ct);
 
@@ -548,12 +551,26 @@ public class MlController : ControllerBase
         var scores = await JsonSerializer.DeserializeAsync<List<DonorHighValueScoreDto>>(stream, opts, ct)
                      ?? new List<DonorHighValueScoreDto>();
 
+        var scoreIds = scores.Select(s => s.SupporterId).ToList();
+        var nameMap = await _context.Supporters.AsNoTracking()
+            .Where(s => scoreIds.Contains(s.SupporterId))
+            .ToDictionaryAsync(
+                s => s.SupporterId,
+                s => BuildSupporterLabel(s.DisplayName, s.OrganizationName, s.FirstName, s.LastName, s.Email, s.SupporterId),
+                ct);
+
         var rows = scores.Select(s => new DonorHighValueScoreRow
         {
             SupporterId = s.SupporterId,
+            DisplayName = nameMap.GetValueOrDefault(s.SupporterId, $"Supporter {s.SupporterId}"),
             HighValueProbability = s.HighValueProbability,
             Error = s.Error,
-        }).ToList();
+        })
+        .OrderBy(r => r.Error != null)
+        .ThenByDescending(r => r.HighValueProbability)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .ToList();
 
         return Ok(rows);
     }
@@ -724,11 +741,12 @@ public class MlController : ControllerBase
     [HttpGet("social-engagement-forecast")]
     public async Task<ActionResult<IReadOnlyList<SocialEngagementScoreRow>>> GetSocialEngagementForecast(
         [FromQuery] string? asOf = null,
+        [FromQuery] int months = 6,
         CancellationToken ct = default)
     {
         try
         {
-            return await GetSocialEngagementForecastCore(asOf, ct);
+            return await GetSocialEngagementForecastCore(asOf, months, ct);
         }
         catch (DbException ex)
         {
@@ -739,6 +757,7 @@ public class MlController : ControllerBase
 
     private async Task<ActionResult<IReadOnlyList<SocialEngagementScoreRow>>> GetSocialEngagementForecastCore(
         string? asOf,
+        int months,
         CancellationToken ct)
     {
         var client = CreateMlClient();
@@ -748,47 +767,101 @@ public class MlController : ControllerBase
         if (!await _context.SocialMediaPosts.AsNoTracking().AnyAsync(ct))
             return Ok(Array.Empty<SocialEngagementScoreRow>());
 
-        DateOnly asOfDate;
+        DateOnly requestedAsOfDate;
         if (!string.IsNullOrWhiteSpace(asOf))
-            asOfDate = DateOnly.Parse(asOf);
+        {
+            requestedAsOfDate = DateOnly.Parse(asOf);
+        }
         else
         {
             var maxDt = await _context.SocialMediaPosts.AsNoTracking()
                 .MaxAsync(p => p.CreatedAt, ct);
-            asOfDate = DateOnly.FromDateTime(maxDt.ToUniversalTime().Date);
-            asOfDate = new DateOnly(asOfDate.Year, asOfDate.Month, 1);
+            requestedAsOfDate = DateOnly.FromDateTime(maxDt.ToUniversalTime().Date);
+            requestedAsOfDate = new DateOnly(requestedAsOfDate.Year, requestedAsOfDate.Month, 1);
         }
 
-        var payload = await SocialEngagementPayload.BuildAsync(_context, asOfDate, ct);
+        var monthsToReturn = Math.Clamp(months, 1, 12);
 
-        using var req = new HttpRequestMessage(HttpMethod.Post, "predict/social-engagement-donations")
+        // Build a forward horizon from the requested feature month.
+        // The model predicts "next month donation" from each feature month,
+        // so we display month+1 in the response.
+        var tries = 0;
+        var probeAsOfDate = requestedAsOfDate;
+        var collected = new List<SocialEngagementScoreRow>();
+        while (tries < 12 && collected.Count < monthsToReturn)
         {
-            Content = JsonContent.Create(payload),
-        };
-        if (!string.IsNullOrEmpty(MlApiKey))
-            req.Headers.TryAddWithoutValidation("X-ML-API-Key", MlApiKey);
+            var payload = await SocialEngagementPayload.BuildAsync(_context, probeAsOfDate, ct);
+            using var req = new HttpRequestMessage(HttpMethod.Post, "predict/social-engagement-donations")
+            {
+                Content = JsonContent.Create(payload),
+            };
+            if (!string.IsNullOrEmpty(MlApiKey))
+                req.Headers.TryAddWithoutValidation("X-ML-API-Key", MlApiKey);
 
-        using var res = await client.SendAsync(req, ct);
-        if (!res.IsSuccessStatusCode)
-        {
-            var body = await res.Content.ReadAsStringAsync(ct);
-            _logger.LogWarning("ML social-engagement failed: {Status} {Body}", res.StatusCode, body);
-            return Ok(Array.Empty<SocialEngagementScoreRow>());
+            using var res = await client.SendAsync(req, ct);
+            if (!res.IsSuccessStatusCode)
+            {
+                var body = await res.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning("ML social-engagement failed: {Status} {Body}", res.StatusCode, body);
+                return Ok(Array.Empty<SocialEngagementScoreRow>());
+            }
+
+            await using var stream = await res.Content.ReadAsStreamAsync(ct);
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var scores = await JsonSerializer.DeserializeAsync<List<SocialEngagementScoreDto>>(stream, opts, ct)
+                         ?? new List<SocialEngagementScoreDto>();
+
+            if (scores.Count > 0)
+            {
+                foreach (var s in scores)
+                {
+                    var predictedMonth = ParseIsoMonthOrFallback(s.Month, probeAsOfDate).AddMonths(1);
+                    var predictedMonthIso = predictedMonth.ToString("yyyy-MM-dd");
+
+                    // Avoid duplicate months if upstream behavior changes.
+                    if (collected.Any(r => string.Equals(r.Month, predictedMonthIso, StringComparison.Ordinal)))
+                        continue;
+
+                    collected.Add(new SocialEngagementScoreRow
+                    {
+                        Month = predictedMonthIso,
+                        PredictedNextMonetary = s.PredictedNextMonetary,
+                        Error = s.Error,
+                    });
+                }
+            }
+
+            probeAsOfDate = probeAsOfDate.AddMonths(1);
+            tries++;
         }
 
-        await using var stream = await res.Content.ReadAsStreamAsync(ct);
-        var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        var scores = await JsonSerializer.DeserializeAsync<List<SocialEngagementScoreDto>>(stream, opts, ct)
-                     ?? new List<SocialEngagementScoreDto>();
+        var ordered = collected
+            .OrderBy(r => r.Month, StringComparer.Ordinal)
+            .ToList();
+        return Ok(ordered);
+    }
 
-        var rows = scores.Select(s => new SocialEngagementScoreRow
-        {
-            Month = s.Month,
-            PredictedNextMonetary = s.PredictedNextMonetary,
-            Error = s.Error,
-        }).ToList();
+    private static DateOnly ParseIsoMonthOrFallback(string? month, DateOnly fallback)
+    {
+        if (DateOnly.TryParse(month, out var parsed))
+            return parsed;
+        return fallback;
+    }
 
-        return Ok(rows);
+    private static string BuildSupporterLabel(
+        string? displayName,
+        string? organizationName,
+        string? firstName,
+        string? lastName,
+        string? email,
+        int supporterId)
+    {
+        if (!string.IsNullOrWhiteSpace(displayName)) return displayName;
+        if (!string.IsNullOrWhiteSpace(organizationName)) return organizationName;
+        var fullName = $"{firstName} {lastName}".Trim();
+        if (!string.IsNullOrWhiteSpace(fullName)) return fullName;
+        if (!string.IsNullOrWhiteSpace(email)) return email;
+        return $"Supporter {supporterId}";
     }
 
     private sealed class ResidentWellbeingScoreDto

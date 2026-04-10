@@ -40,8 +40,8 @@ export default function MlEarlyWarningPanel() {
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">ML - IS 455</p>
-          <h2 className="text-xl font-serif text-foreground">Live ML - early warning (next month)</h2>
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">INSIGHTS - PREDICTIVE</p>
+          <h2 className="text-xl font-serif text-foreground">Early warning (next month)</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Helps staff quickly see who is most at risk next month, so the team can act early and
             reduce serious incidents.

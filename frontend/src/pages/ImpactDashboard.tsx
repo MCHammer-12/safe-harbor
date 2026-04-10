@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import AppHeader from '@/components/shared/AppHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
+import QuestionTooltip from '@/components/shared/QuestionTooltip';
 import { featuredStory, restorationStories } from '@/data/featuredStory';
 import {
   useImpactSummary,
@@ -47,6 +48,13 @@ export default function ImpactDashboardPage() {
     S001: '/impact/stories/silence-to-voice',
     S002: '/impact/stories/reconnecting-with-family',
     S003: '/impact/stories/academic-excellence',
+  };
+  const outcomeTooltipByLabel: Record<string, string> = {
+    active: 'Active cases are currently receiving ongoing support services and case management.',
+    closed:
+      'Closed cases have completed services or reached a planned case conclusion, and are no longer active.',
+    transferred:
+      'Transferred cases were moved to another program, safehouse, or partner organization for continued support.',
   };
 
   return (
@@ -170,18 +178,26 @@ export default function ImpactDashboardPage() {
             >
               {trend.map(({ month, total }) => {
                 const h = Math.max(4, Math.round((total / trendMax) * 100));
+                const monthDate = new Date(`${month}-01T00:00:00`);
+                const monthLabel = Number.isNaN(monthDate.getTime())
+                  ? month
+                  : monthDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
                 return (
                   <div
                     key={month}
                     className="flex-1 h-full flex flex-col items-center justify-end gap-2"
                   >
-                    <div
-                      className="w-full rounded-t-md bg-primary/80 hover:bg-primary transition-colors"
-                      style={{ height: `${h}%` }}
-                      aria-label={`${month}: $${total.toLocaleString()}`}
-                    />
-                    <span className="text-[10px] md:text-xs text-muted-foreground font-mono">
-                      {month.slice(5)}
+                    <div className="relative w-full group" style={{ height: `${h}%` }}>
+                      <div
+                        className="h-full w-full rounded-t-md bg-primary/80 hover:bg-primary transition-colors"
+                        aria-label={`${month}: $${total.toLocaleString()}`}
+                      />
+                      <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 w-max max-w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 rounded-md border border-border bg-white p-2 text-[11px] font-normal normal-case tracking-normal text-foreground shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
+                        ${total.toLocaleString()}
+                      </span>
+                    </div>
+                    <span className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">
+                      {monthLabel}
                     </span>
                   </div>
                 );
@@ -207,7 +223,16 @@ export default function ImpactDashboardPage() {
                 {outcomes.map(({ label, pct }) => (
                   <div key={label}>
                     <div className="flex justify-between items-end mb-2.5">
-                      <span className="text-base md:text-lg text-foreground font-medium">{label}</span>
+                      <span className="text-base md:text-lg text-foreground font-medium">
+                        {label}
+                        {outcomeTooltipByLabel[label.toLowerCase()] ? (
+                          <QuestionTooltip
+                            label={`What ${label} means`}
+                            text={outcomeTooltipByLabel[label.toLowerCase()]}
+                            align="left"
+                          />
+                        ) : null}
+                      </span>
                       <span className="text-xl md:text-2xl font-serif text-primary">{pct}%</span>
                     </div>
                     <div

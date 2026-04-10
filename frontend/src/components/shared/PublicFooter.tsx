@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom';
-
 export default function PublicFooter() {
   return (
     <footer className="bg-white border-t border-border mt-20">
@@ -21,14 +19,14 @@ export default function PublicFooter() {
               </a>
             </li>
             <li>
-              <Link to="/privacy" className="hover:text-primary transition-colors">
+              <a href="/privacy" className="hover:text-primary transition-colors">
                 Privacy Policy
-              </Link>
+              </a>
             </li>
             <li>
-              <Link to="/contact" className="hover:text-primary transition-colors">
+              <a href="/contact" className="hover:text-primary transition-colors">
                 Contact
-              </Link>
+              </a>
             </li>
           </ul>
         </nav>

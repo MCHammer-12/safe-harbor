@@ -1,6 +1,5 @@
 import AppHeader from '@/components/shared/AppHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
-import MlSocialPipelinePanel from '@/components/ml/MlSocialPipelinePanel';
 import MlSocialEngagementForecastPanel from '@/components/ml/MlSocialEngagementForecastPanel';
 import SocialInsightsPanel from '@/components/social/SocialInsightsPanel';
 
@@ -21,7 +20,6 @@ export default function SocialMediaDashboardPage() {
         </div>
 
         <SocialInsightsPanel />
-        <MlSocialPipelinePanel />
         <MlSocialEngagementForecastPanel />
       </main>
       <PublicFooter />

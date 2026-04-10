@@ -172,7 +172,27 @@ def build_social_engagement_from_payload(payload: dict[str, Any]) -> pd.DataFram
 
 def row_for_month(panel_model: pd.DataFrame, as_of: str) -> pd.DataFrame:
     ym = pd.Timestamp(as_of[:10]).to_period("M").to_timestamp()
-    return panel_model[panel_model["month"] == ym].copy()
+    exact = panel_model[panel_model["month"] == ym].copy()
+    if not exact.empty:
+        return exact
+
+    if panel_model.empty:
+        return panel_model.iloc[0:0].copy()
+
+    max_month = panel_model["month"].max()
+
+    # Forward projection: if the requested month is beyond available history,
+    # reuse the latest known feature row and only advance calendar fields.
+    if ym > max_month:
+        projected = panel_model[panel_model["month"] == max_month].tail(1).copy()
+        projected["month"] = ym
+        if "month_num" in projected.columns:
+            projected["month_num"] = int(ym.month)
+        if "year_num" in projected.columns:
+            projected["year_num"] = int(ym.year)
+        return projected
+
+    return panel_model.iloc[0:0].copy()
 
 
 def predict_social_next(

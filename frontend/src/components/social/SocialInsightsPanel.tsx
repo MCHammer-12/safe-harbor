@@ -1,6 +1,5 @@
 import { formatPhp, phpToUsdTooltip } from '@/lib/currencyPhp';
 import { useSocialInsightsSummary } from '@/hooks/useSocialInsightsSummary';
-import QuestionTooltip from '@/components/shared/QuestionTooltip';
 import InlineHoverTooltip from '@/components/shared/InlineHoverTooltip';
 
 function BarRow({
@@ -69,10 +68,6 @@ export default function SocialInsightsPanel() {
             <p className="text-sm text-foreground">
               <span className="font-semibold">Recommended posting pace:</span>{' '}
               about <span className="font-semibold">{data.recommendedPostsPerWeek}</span> posts per week.
-              <QuestionTooltip
-                label="How posting pace is calculated"
-                text="This is based on the weeks in your past data that gave the strongest donation value per post."
-              />
             </p>
             <p className="text-xs text-muted-foreground mt-1">{data.recommendationNote}</p>
             <p className="text-xs text-muted-foreground mt-1">Sample size: {data.sampleSize} posts.</p>
@@ -81,10 +76,6 @@ export default function SocialInsightsPanel() {
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">
               Best platforms (by donation value per post)
-              <QuestionTooltip
-                label="How to read best platforms"
-                text="Higher bars mean that platform usually brings more donation value per post, not just more likes."
-              />
             </h3>
             {(data.platformPerformance ?? []).slice(0, 4).map((row) => (
               <BarRow
@@ -100,10 +91,6 @@ export default function SocialInsightsPanel() {
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">
               What to post (donation impact vs likes)
-              <QuestionTooltip
-                label="How to read content findings"
-                text="Use this to pick content types that lead to donations, not only content that gets attention."
-              />
             </h3>
             {(data.contentPerformance ?? []).slice(0, 5).map((row) => (
               <BarRow
@@ -119,10 +106,6 @@ export default function SocialInsightsPanel() {
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">
               Best time of day to post
-              <QuestionTooltip
-                label="How to read time of day"
-                text="Higher bars mean those posting times have produced stronger donation value per post in past data."
-              />
             </h3>
             {(data.timeOfDayPerformance ?? []).map((row) => (
               <BarRow

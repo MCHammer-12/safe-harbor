@@ -10,7 +10,7 @@ function normalizeRow(raw: Record<string, unknown>): SocialEngagementScoreRow {
   };
 }
 
-export function useMlSocialEngagementForecast(asOf?: string) {
+export function useMlSocialEngagementForecast(asOf?: string, months = 6) {
   const [rows, setRows] = useState<SocialEngagementScoreRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -21,6 +21,7 @@ export function useMlSocialEngagementForecast(asOf?: string) {
       setLoading(true);
       const qs = new URLSearchParams();
       if (asOf) qs.set('asOf', asOf);
+      qs.set('months', String(months));
       const q = qs.toString();
       const res = await apiGet<unknown[]>(`/api/Ml/social-engagement-forecast${q ? `?${q}` : ''}`);
       if (cancelled) return;
@@ -38,7 +39,7 @@ export function useMlSocialEngagementForecast(asOf?: string) {
     return () => {
       cancelled = true;
     };
-  }, [asOf]);
+  }, [asOf, months]);
 
   return { rows, loading, error: fetchError };
 }

@@ -1209,7 +1209,10 @@ export default function DonorsContributionsPage() {
         </section>
 
         <MlDonorChurnPanel page={page} pageSize={PAGE_SIZE} totalCount={supporters.data?.total} />
-        <MlDonorHighValuePanel page={page} pageSize={PAGE_SIZE} supporterNameById={supporterNameById} />
+        <MlDonorHighValuePanel
+          supporterNameById={supporterNameById}
+          totalCount={supporters.data?.total}
+        />
         </div>
       </main>
       <PublicFooter />
