@@ -108,3 +108,45 @@ export async function getAuthSession() {
 
   return response.json();
 }
+
+export type LinkDonorProfileLookupPayload = {
+  firstName: string;
+  lastName: string;
+};
+
+export type LinkDonorProfileCreatePayload = LinkDonorProfileLookupPayload & {
+  supporterType: string;
+  organizationName?: string | null;
+  relationshipType: string;
+  region: string;
+  country: string;
+  phone: string;
+  status: string;
+  acquisitionChannel: string;
+};
+
+export type LinkDonorProfileResponse = {
+  linked?: boolean;
+  needsSupporterDetails?: boolean;
+  error?: string;
+};
+
+export async function linkDonorProfile(
+  payload: LinkDonorProfileLookupPayload | LinkDonorProfileCreatePayload,
+): Promise<LinkDonorProfileResponse> {
+  const response = await fetch(`${apiBaseUrl}/api/auth/link-donor-profile`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readApiError(response, 'Unable to link donor profile.'));
+  }
+
+  return response.json();
+}

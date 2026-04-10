@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Filter, Repeat, HandCoins, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/shared/AppHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import { apiGet, apiPost } from '@/lib/api';
+import { linkDonorProfile } from '@/lib/AuthApi';
+import { useAuth } from '@/context/AuthContext';
 import type {
   CreateDonationRequestDto,
   DonorDashboardDonationDto,
@@ -43,6 +46,37 @@ type AllocationArea =
 
 /** Shown in the table/snapshot; donors do not set allocation — staff adds rows later. */
 type DisplayAllocationArea = AllocationArea | 'Unallocated';
+
+type SupporterType =
+  | 'MonetaryDonor'
+  | 'InKindDonor'
+  | 'Volunteer'
+  | 'SkillsContributor'
+  | 'SocialMediaAdvocate'
+  | 'PartnerOrganization';
+
+type RelationshipType = 'Local' | 'International' | 'PartnerOrganization';
+type AcquisitionChannel = 'Website' | 'SocialMedia' | 'Event' | 'WordOfMouth' | 'PartnerReferral' | 'Church';
+type SupporterStatus = 'Active' | 'Inactive';
+
+const SUPPORTER_TYPES: SupporterType[] = [
+  'MonetaryDonor',
+  'InKindDonor',
+  'Volunteer',
+  'SkillsContributor',
+  'SocialMediaAdvocate',
+  'PartnerOrganization',
+];
+const RELATIONSHIP_TYPES: RelationshipType[] = ['Local', 'International', 'PartnerOrganization'];
+const ACQUISITION_CHANNELS: AcquisitionChannel[] = [
+  'Website',
+  'SocialMedia',
+  'Event',
+  'WordOfMouth',
+  'PartnerReferral',
+  'Church',
+];
+const SUPPORTER_STATUSES: SupporterStatus[] = ['Active', 'Inactive'];
 
 interface DonationRow {
   donation_id: number;
@@ -170,6 +204,8 @@ function mapDonationDtoToRow(d: DonorDashboardDonationDto): DonationRow {
 }
 
 export default function DonorDashboardPage() {
+  const navigate = useNavigate();
+  const { authSession, refreshAuthState } = useAuth();
   const [donations, setDonations] = useState<DonationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -181,6 +217,22 @@ export default function DonorDashboardPage() {
   const [selectedDonation, setSelectedDonation] = useState<DonationRow | null>(null);
   const [form, setForm] = useState<DonationRow>(emptyDonationForm());
   const [formError, setFormError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const [linkGateOpen, setLinkGateOpen] = useState(false);
+  const [linkStep, setLinkStep] = useState<1 | 2>(1);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkFirstName, setLinkFirstName] = useState('');
+  const [linkLastName, setLinkLastName] = useState('');
+  const [supporterType, setSupporterType] = useState<SupporterType>('MonetaryDonor');
+  const [organizationName, setOrganizationName] = useState('');
+  const [relationshipType, setRelationshipType] = useState<RelationshipType>('Local');
+  const [region, setRegion] = useState('');
+  const [country, setCountry] = useState('');
+  const [phone, setPhone] = useState('');
+  const [status, setStatus] = useState<SupporterStatus>('Active');
+  const [acquisitionChannel, setAcquisitionChannel] = useState<AcquisitionChannel>('Website');
 
   useEffect(() => {
     let cancelled = false;
@@ -196,17 +248,22 @@ export default function DonorDashboardPage() {
         if (!response.data) {
           setDonations([]);
           const message = response.error ?? 'Failed to load donor donations.';
-          setLoadError(
-            message.toLowerCase().includes('donor-supporter link')
-              ? 'Your donor profile is not linked yet. Please contact support to finish account setup.'
-              : message,
-          );
+          const missingLink = message.toLowerCase().includes('donor-supporter link');
+          if (missingLink) {
+            setLinkGateOpen(true);
+            setLinkStep(1);
+            setLinkError(null);
+            setLoadError(null);
+          } else {
+            setLoadError(message);
+          }
           return;
         }
         const data = response.data;
 
         const rows: DonationRow[] = data.map(mapDonationDtoToRow);
 
+        setLinkGateOpen(false);
         setDonations(rows);
       } catch (err) {
         if (cancelled) return;
@@ -220,7 +277,299 @@ export default function DonorDashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadToken]);
+
+  function declineAndLeave() {
+    // must leave donor page; do not allow dismiss into dashboard
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate('/impact');
+  }
+
+  async function submitLinkStep1() {
+    setLinkError(null);
+    if (!linkFirstName.trim() || !linkLastName.trim()) {
+      setLinkError('Please enter your first and last name.');
+      return;
+    }
+    setLinkBusy(true);
+    try {
+      const res = await linkDonorProfile({
+        firstName: linkFirstName.trim(),
+        lastName: linkLastName.trim(),
+      });
+      if (res.linked) {
+        await refreshAuthState();
+        setReloadToken((t) => t + 1);
+        return;
+      }
+      if (res.needsSupporterDetails) {
+        setLinkStep(2);
+        return;
+      }
+      setLinkError('Unexpected response. Please try again.');
+    } catch (e) {
+      setLinkError(e instanceof Error ? e.message : 'Unable to link donor profile.');
+    } finally {
+      setLinkBusy(false);
+    }
+  }
+
+  async function submitLinkStep2() {
+    setLinkError(null);
+    if (!linkFirstName.trim() || !linkLastName.trim()) {
+      setLinkError('Please enter your first and last name.');
+      return;
+    }
+    if (supporterType === 'PartnerOrganization' && !organizationName.trim()) {
+      setLinkError('Organization name is required for PartnerOrganization.');
+      return;
+    }
+    setLinkBusy(true);
+    try {
+      const res = await linkDonorProfile({
+        firstName: linkFirstName.trim(),
+        lastName: linkLastName.trim(),
+        supporterType,
+        organizationName: supporterType === 'PartnerOrganization' ? organizationName.trim() : null,
+        relationshipType,
+        region: region.trim(),
+        country: country.trim(),
+        phone: phone.trim(),
+        status,
+        acquisitionChannel,
+      });
+      if (res.linked) {
+        await refreshAuthState();
+        setReloadToken((t) => t + 1);
+        return;
+      }
+      setLinkError(
+        res.needsSupporterDetails
+          ? 'Please complete all fields to proceed.'
+          : 'Unable to link donor profile. Please try again.',
+      );
+    } catch (e) {
+      setLinkError(e instanceof Error ? e.message : 'Unable to link donor profile.');
+    } finally {
+      setLinkBusy(false);
+    }
+  }
+
+  if (linkGateOpen) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-10 sm:py-14">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="donor-link-title"
+            className="rounded-3xl border border-border bg-white shadow-sm p-6 sm:p-8"
+          >
+            <h1 id="donor-link-title" className="text-2xl font-serif text-foreground">
+              Donation history needs supporter info
+            </h1>
+            <p className="text-sm text-muted-foreground mt-2">
+              Donation history is not accessible without additional supporter information. Please enter the
+              following information and we&apos;ll search for you in our supporter database.
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs uppercase tracking-wide text-muted-foreground">First name</label>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                    value={linkFirstName}
+                    onChange={(e) => setLinkFirstName(e.target.value)}
+                    autoComplete="given-name"
+                    disabled={linkBusy}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs uppercase tracking-wide text-muted-foreground">Last name</label>
+                  <input
+                    className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                    value={linkLastName}
+                    onChange={(e) => setLinkLastName(e.target.value)}
+                    autoComplete="family-name"
+                    disabled={linkBusy}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-background px-4 py-3">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Account email</p>
+                <p className="text-sm text-foreground font-medium break-all">{authSession.email ?? '—'}</p>
+              </div>
+
+              {linkStep === 2 && (
+                <>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 text-sm">
+                    It looks like you&apos;ve never donated before, please provide a bit more information to proceed to
+                    the donation portal.
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs uppercase tracking-wide text-muted-foreground">Supporter type</label>
+                      <select
+                        className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                        value={supporterType}
+                        onChange={(e) => setSupporterType(e.target.value as SupporterType)}
+                        disabled={linkBusy}
+                      >
+                        {SUPPORTER_TYPES.map((v) => (
+                          <option key={v} value={v}>
+                            {v}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-wide text-muted-foreground">Relationship type</label>
+                      <select
+                        className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                        value={relationshipType}
+                        onChange={(e) => setRelationshipType(e.target.value as RelationshipType)}
+                        disabled={linkBusy}
+                      >
+                        {RELATIONSHIP_TYPES.map((v) => (
+                          <option key={v} value={v}>
+                            {v}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {supporterType === 'PartnerOrganization' && (
+                    <div>
+                      <label className="text-xs uppercase tracking-wide text-muted-foreground">Organization name</label>
+                      <input
+                        className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                        value={organizationName}
+                        onChange={(e) => setOrganizationName(e.target.value)}
+                        disabled={linkBusy}
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs uppercase tracking-wide text-muted-foreground">Region</label>
+                      <input
+                        className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                        value={region}
+                        onChange={(e) => setRegion(e.target.value)}
+                        disabled={linkBusy}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-wide text-muted-foreground">Country</label>
+                      <input
+                        className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        disabled={linkBusy}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs uppercase tracking-wide text-muted-foreground">Phone</label>
+                      <input
+                        className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        disabled={linkBusy}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-wide text-muted-foreground">Status</label>
+                      <select
+                        className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value as SupporterStatus)}
+                        disabled={linkBusy}
+                      >
+                        {SUPPORTER_STATUSES.map((v) => (
+                          <option key={v} value={v}>
+                            {v}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs uppercase tracking-wide text-muted-foreground">Acquisition channel</label>
+                    <select
+                      className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                      value={acquisitionChannel}
+                      onChange={(e) => setAcquisitionChannel(e.target.value as AcquisitionChannel)}
+                      disabled={linkBusy}
+                    >
+                      {ACQUISITION_CHANNELS.map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {linkError ? (
+                <p className="text-sm font-medium text-destructive" role="alert">
+                  {linkError}
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+                <button
+                  type="button"
+                  className="rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                  onClick={declineAndLeave}
+                  disabled={linkBusy}
+                >
+                  Nevermind
+                </button>
+
+                <div className="flex gap-2">
+                  {linkStep === 2 ? (
+                    <button
+                      type="button"
+                      className="rounded-xl border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                      onClick={() => {
+                        setLinkError(null);
+                        setLinkStep(1);
+                      }}
+                      disabled={linkBusy}
+                    >
+                      Back
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                    onClick={() => void (linkStep === 1 ? submitLinkStep1() : submitLinkStep2())}
+                    disabled={linkBusy}
+                  >
+                    {linkBusy ? 'Working…' : linkStep === 1 ? 'Search & link' : 'Create & continue'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <PublicFooter />
+      </div>
+    );
+  }
 
   const filteredDonations = useMemo(() => {
     const needle = search.trim().toLowerCase();
