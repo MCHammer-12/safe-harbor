@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-04-09 evening -- Azure App Service deployment, same-origin auth fix (Michael)
+
+**What was done:**
+- **PR #44 (merged)** -- serve React SPA from .NET backend (same-origin auth)
+  - Added `UseDefaultFiles()`, `UseStaticFiles()`, `MapFallbackToFile("index.html")` to `Program.cs`
+  - Simplified `frontend/src/lib/api.ts` to always use relative paths (same origin in dev and prod)
+  - Added `backend/backend/wwwroot/` to `.gitignore`
+- **PR #45 (open)** -- prod deploy fixes
+  - Made Google OAuth conditional (app crashed on startup without credentials)
+  - Moved static file middleware before auth so SPA and assets are publicly accessible
+  - `MapFallbackToFile` marked `AllowAnonymous` for client-side routing
+  - API endpoints return 401 instead of redirecting to `/Account/Login`
+- **Azure App Service created** -- `safe-harbor-app` in resource group `safe-harbor`, Free F1, .NET 10, Windows, Canada Central
+  - Connection strings set: `MainAppDbConnection` (IntexDB) + `AuthConnection` (AuthDB)
+  - Deployed via `az webapp deploy --type zip`
+  - Site live at `https://safe-harbor-app-cbhbghfvgzerf5f4.canadacentral-01.azurewebsites.net/`
+- **Azure CLI installed** via `brew install azure-cli`, logged in as hammer12@byu.edu
+
+**Files changed:**
+- `backend/backend/Program.cs` (static files before auth, conditional Google OAuth, API 401, SPA fallback)
+- `frontend/src/lib/api.ts` (relative paths for same-origin)
+- `.gitignore` (added `backend/backend/wwwroot/`)
+
+**Decisions made:**
+- Serve frontend from .NET App Service wwwroot/ instead of separate SWA -- eliminates cross-origin cookie auth issues entirely
+- Free F1 tier is sufficient for demo (no custom domain needed, using azurewebsites.net URL)
+- SWA can be decommissioned once App Service is confirmed stable
+- Deploy flow: `npm run build` -> copy `dist/` to `wwwroot/` -> `dotnet publish` -> `az webapp deploy --type zip`
+
+**Next steps:**
+- Merge PR #45 so fixes are on main
+- Set up GitHub Actions CI/CD for auto-deploy on push to main (Deployment Center couldn't connect to bwood02 org -- needs bwood02 to authorize Azure)
+- Lighthouse a11y >= 90 audit
+- Final submission Friday 10am
+
+---
+
 ## 2026-04-09 -- Mobile-responsive nav, polish, logo, grouped header (Michael)
 
 **What was done:**
