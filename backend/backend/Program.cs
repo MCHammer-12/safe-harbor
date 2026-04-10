@@ -153,6 +153,13 @@ else
 
 app.UseHttpsRedirection();
 
+// Trust Azure App Service forwarded headers so Url.Action() generates correct https URLs
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+                     | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto,
+});
+
 app.UseSecurityHeaders();
 
 app.UseCors(FrontendCorsPolicy);
