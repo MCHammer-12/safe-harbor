@@ -6,6 +6,7 @@ import type { DonorChurnScoreRow } from '@/types/ml';
 function normalizeRow(raw: Record<string, unknown>): DonorChurnScoreRow {
   return {
     supporterId: Number(raw.supporterId ?? raw.supporter_id),
+    displayName: raw.displayName != null ? String(raw.displayName) : undefined,
     churnProbability: Number(raw.churnProbability ?? raw.churn_probability ?? 0),
     tier: String(raw.tier ?? ''),
     recommendedAction: String(raw.recommendedAction ?? raw.recommended_action ?? ''),

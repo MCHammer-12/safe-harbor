@@ -227,6 +227,7 @@ public class MlController : ControllerBase
     public class DonorChurnScoreRow
     {
         public int SupporterId { get; set; }
+        public string? DisplayName { get; set; }
         public double ChurnProbability { get; set; }
         public string Tier { get; set; } = "";
         public string RecommendedAction { get; set; } = "";
@@ -355,9 +356,15 @@ public class MlController : ControllerBase
         var scores = await JsonSerializer.DeserializeAsync<List<DonorChurnScoreDto>>(stream, opts, ct)
                      ?? new List<DonorChurnScoreDto>();
 
+        var scoreIds = scores.Select(s => s.SupporterId).ToList();
+        var nameMap = await _context.Supporters.AsNoTracking()
+            .Where(s => scoreIds.Contains(s.SupporterId))
+            .ToDictionaryAsync(s => s.SupporterId, s => s.DisplayName, ct);
+
         var rows = scores.Select(s => new DonorChurnScoreRow
         {
             SupporterId = s.SupporterId,
+            DisplayName = nameMap.GetValueOrDefault(s.SupporterId),
             ChurnProbability = s.ChurnProbability,
             Tier = s.Tier ?? "",
             RecommendedAction = s.RecommendedAction ?? "",
@@ -503,7 +510,10 @@ public class MlController : ControllerBase
             if (!maxDonationDate.HasValue)
                 return Ok(Array.Empty<DonorHighValueScoreRow>());
 
-            asOfDate = new DateOnly(maxDonationDate.Value.Year, maxDonationDate.Value.Month, 1);
+            // Feature builder caps snapshots at max_donation_month - 12mo (training lookahead).
+            // Subtract 13 months so we land in the latest available snapshot window.
+            asOfDate = new DateOnly(maxDonationDate.Value.Year, maxDonationDate.Value.Month, 1)
+                .AddMonths(-13);
         }
 
         var supporterIds = await _context.Supporters.AsNoTracking()

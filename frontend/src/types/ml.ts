@@ -22,6 +22,7 @@ export interface MlDeploymentStatus {
 
 export interface DonorChurnScoreRow {
   supporterId: number;
+  displayName?: string;
   churnProbability: number;
   tier: string;
   recommendedAction: string;
