@@ -3,11 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginUser } from '@/lib/AuthApi';
 import { useAuth } from '@/context/AuthContext';
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+import { API_BASE_URL } from '@/lib/api';
 
-if (!apiBaseUrl) {
-  throw new Error('VITE_API_BASE_URL is not configured.');
-}
+const apiBaseUrl = API_BASE_URL;
 
 export default function LoginPage() {
   const navigate = useNavigate();
