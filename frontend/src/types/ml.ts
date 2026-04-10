@@ -13,6 +13,9 @@ export interface MlDeploymentStatus {
   mlServiceConfigured: boolean;
   mlReachable?: boolean;
   message?: string;
+  /** Host .NET uses for Ml:BaseUrl (admin diagnostics; avoids Azure Log Stream). */
+  mlBaseUrlHost?: string | null;
+  mlApiKeyConfigured?: boolean;
   checkedAtUtc: string;
   pipelines: MlPipelineStatusRow[];
 }
@@ -27,6 +30,8 @@ export interface DonorChurnScoreRow {
 
 export interface ResidentWellbeingScoreRow {
   residentId: number;
+  /** Case control no. from SQL — same staff-facing label as Caseload (no separate legal name column). */
+  residentName: string;
   predictedWellbeingNext: number;
   wellbeingLag: number;
   error: string | null;
@@ -40,12 +45,14 @@ export interface DonorHighValueScoreRow {
 
 export interface EarlyWarningScoreRow {
   residentId: number;
+  residentName: string;
   struggleProbability: number;
   error: string | null;
 }
 
 export interface ReintegrationReadinessScoreRow {
   residentId: number;
+  residentName: string;
   readinessProbability: number;
   error: string | null;
 }

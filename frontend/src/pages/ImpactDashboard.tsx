@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import AppHeader from '@/components/shared/AppHeader';
 import PublicFooter from '@/components/shared/PublicFooter';
 import { featuredStory, restorationStories } from '@/data/featuredStory';
@@ -42,6 +43,11 @@ export default function ImpactDashboardPage() {
   ];
 
   const outcomes = outcomesQuery.data ?? [];
+  const storyPathById: Record<string, string> = {
+    S001: '/impact/stories/silence-to-voice',
+    S002: '/impact/stories/reconnecting-with-family',
+    S003: '/impact/stories/academic-excellence',
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -74,12 +80,13 @@ export default function ImpactDashboardPage() {
                 >
                   Support Our Work
                 </button>
-                <button
-                  className="px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-full border border-foreground/20 text-foreground text-base sm:text-lg font-medium hover:bg-foreground/5 transition-colors"
+                <Link
+                  to={storyPathById.S001}
+                  className="px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-full border border-foreground/20 text-foreground text-base sm:text-lg font-medium hover:bg-foreground/5 transition-colors inline-flex items-center justify-center"
                   aria-label="Learn more about this story"
                 >
                   Read the story
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -300,13 +307,13 @@ export default function ImpactDashboardPage() {
                     <p className="text-sm text-muted-foreground leading-relaxed mb-4">
                       {story.description}
                     </p>
-                    <a
-                      href="#"
+                    <Link
+                      to={storyPathById[story.id] ?? storyPathById.S001}
                       className="inline-flex items-center px-4 py-2 rounded-full border border-primary text-primary text-sm font-medium hover:bg-primary hover:text-white transition-colors"
                       aria-label={`Read full article for ${story.title}`}
                     >
                       Read Full Article
-                    </a>
+                    </Link>
                   </div>
                 </article>
               );

@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using backend.Infrastructure;
 using backend.Models;
 
 namespace backend.Controllers;
@@ -31,8 +32,16 @@ public class MlController : ControllerBase
         _logger = logger;
     }
 
-    private string? MlBaseUrl => _configuration["Ml:BaseUrl"]?.Trim();
-    private string? MlApiKey => _configuration["Ml:ApiKey"]?.Trim();
+    private string? MlBaseUrl => MlAppSettings.ResolveBaseUrl(_configuration);
+    private string? MlApiKey => MlAppSettings.ResolveApiKey(_configuration);
+
+    /// <summary>Host only (e.g. safe-harbor-fastapi-....azurewebsites.net) for admin diagnostics — avoids relying on Azure Log Stream.</summary>
+    private static string? MlBaseUrlHostOnly(string? mlBaseUrl)
+    {
+        var t = mlBaseUrl?.Trim();
+        if (string.IsNullOrWhiteSpace(t)) return null;
+        return Uri.TryCreate(t, UriKind.Absolute, out var u) ? u.Host : null;
+    }
 
     private HttpClient? CreateMlClient()
     {
@@ -40,7 +49,82 @@ public class MlController : ControllerBase
         if (string.IsNullOrWhiteSpace(baseUrl))
             return null;
         var client = _httpClientFactory.CreateClient("MlApi");
+        // Force current resolved URL per request so stale startup config cannot pin localhost.
+        client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
         return client;
+    }
+
+    /// <summary>Joins ML score rows with <c>residents.case_control_no</c> (staff-facing resident label; no separate legal name in schema).</summary>
+    private async Task AttachResidentNamesAsync<T>(
+        List<T> rows,
+        Func<T, int> getResidentId,
+        Action<T, string> setResidentName,
+        CancellationToken ct)
+    {
+        if (rows.Count == 0) return;
+        var ids = rows.Select(getResidentId).Distinct().ToList();
+        var map = await _context.Residents.AsNoTracking()
+            .Where(r => ids.Contains(r.ResidentId))
+            .ToDictionaryAsync(r => r.ResidentId, r => r.CaseControlNo, ct);
+        foreach (var row in rows)
+        {
+            if (map.TryGetValue(getResidentId(row), out var ccn))
+                setResidentName(row, ccn);
+        }
+    }
+
+    /// <summary>
+    /// Admin-only: exact runtime ML config + env key presence (no secrets) + direct outbound GET /health (bypasses named HttpClient).
+    /// Open in browser while logged in as Admin: GET /api/Ml/config-probe
+    /// </summary>
+    [HttpGet("config-probe")]
+    public async Task<ActionResult<object>> GetConfigProbe(CancellationToken ct)
+    {
+        var cfgRaw = _configuration["Ml:BaseUrl"]?.Trim();
+        var resolved = MlAppSettings.ResolveBaseUrl(_configuration);
+        var apiKey = MlAppSettings.ResolveApiKey(_configuration);
+
+        int? outboundStatus = null;
+        string? outboundError = null;
+        if (!string.IsNullOrWhiteSpace(resolved))
+        {
+            try
+            {
+                using var probe = new HttpClient
+                {
+                    BaseAddress = new Uri(resolved.TrimEnd('/') + "/"),
+                    Timeout = TimeSpan.FromSeconds(20),
+                };
+                if (!string.IsNullOrEmpty(apiKey))
+                    probe.DefaultRequestHeaders.TryAddWithoutValidation("X-ML-API-Key", apiKey);
+
+                using var r = await probe.GetAsync("health", ct);
+                outboundStatus = (int)r.StatusCode;
+            }
+            catch (Exception ex)
+            {
+                outboundError = $"{ex.GetType().Name}: {ex.Message}";
+            }
+        }
+
+        static bool EnvSet(string k) => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(k));
+
+        return Ok(new
+        {
+            checkedAtUtc = DateTime.UtcNow,
+            aspNetCoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+            websiteInstanceIdPresent = EnvSet("WEBSITE_INSTANCE_ID"),
+            configuration_Ml_BaseUrl_raw = string.IsNullOrEmpty(cfgRaw) ? null : cfgRaw,
+            effectiveResolvedBaseUrl = resolved,
+            effectiveHost = MlBaseUrlHostOnly(resolved),
+            apiKeyConfigured = !string.IsNullOrEmpty(apiKey),
+            env_Ml__BaseUrl = EnvSet("Ml__BaseUrl"),
+            env_APPSETTING_Ml__BaseUrl = EnvSet("APPSETTING_Ml__BaseUrl"),
+            env_Ml_BaseUrl_typo = EnvSet("Ml_BaseUrl"),
+            env_APPSETTING_Ml_BaseUrl_typo = EnvSet("APPSETTING_Ml_BaseUrl"),
+            directOutboundGetHealth_statusCode = outboundStatus,
+            directOutboundGetHealth_error = outboundError,
+        });
     }
 
     [HttpGet("deployment-status")]
@@ -53,6 +137,8 @@ public class MlController : ControllerBase
             {
                 mlServiceConfigured = false,
                 message = "Ml:BaseUrl is not set",
+                mlBaseUrlHost = (string?)null,
+                mlApiKeyConfigured = !string.IsNullOrEmpty(MlApiKey),
                 checkedAtUtc = DateTime.UtcNow,
                 pipelines = PipelineMeta.All.Select(p => new
                 {
@@ -69,8 +155,12 @@ public class MlController : ControllerBase
 
         try
         {
-            using var healthRes = await client.GetAsync("health", ct);
-            var modelsRes = await client.GetAsync("models", ct);
+            // Run in parallel — sequential calls doubled latency to the ML app (noticeable on cold starts).
+            var healthTask = client.GetAsync("health", ct);
+            var modelsTask = client.GetAsync("models", ct);
+            await Task.WhenAll(healthTask, modelsTask);
+            using var healthRes = await healthTask;
+            using var modelsRes = await modelsTask;
             var healthOk = healthRes.IsSuccessStatusCode;
             JsonDocument? modelsDoc = null;
             if (modelsRes.IsSuccessStatusCode)
@@ -103,6 +193,8 @@ public class MlController : ControllerBase
             {
                 mlServiceConfigured = true,
                 mlReachable = healthOk,
+                mlBaseUrlHost = MlBaseUrlHostOnly(MlBaseUrl),
+                mlApiKeyConfigured = !string.IsNullOrEmpty(MlApiKey),
                 checkedAtUtc = DateTime.UtcNow,
                 pipelines,
             });
@@ -115,6 +207,8 @@ public class MlController : ControllerBase
                 mlServiceConfigured = true,
                 mlReachable = false,
                 message = ex.Message,
+                mlBaseUrlHost = MlBaseUrlHostOnly(MlBaseUrl),
+                mlApiKeyConfigured = !string.IsNullOrEmpty(MlApiKey),
                 checkedAtUtc = DateTime.UtcNow,
                 pipelines = PipelineMeta.All.Select(p => new
                 {
@@ -182,7 +276,7 @@ public class MlController : ControllerBase
                 .MaxAsync(d => d.DonationDate, ct);
 
             if (!maxDonationDate.HasValue)
-                return Ok(Array.Empty<DonorHighValueScoreRow>());
+                return Ok(Array.Empty<DonorChurnScoreRow>());
 
             asOfDate = new DateOnly(maxDonationDate.Value.Year, maxDonationDate.Value.Month, 1);
         }
@@ -276,6 +370,8 @@ public class MlController : ControllerBase
     public class ResidentWellbeingScoreRow
     {
         public int ResidentId { get; set; }
+        /// <summary>Staff-facing resident label from <c>case_control_no</c> (same identifier as Caseload).</summary>
+        public string ResidentName { get; set; } = "";
         public double PredictedWellbeingNext { get; set; }
         public double WellbeingLag { get; set; }
         public string? Error { get; set; }
@@ -351,6 +447,7 @@ public class MlController : ControllerBase
             Error = s.Error,
         }).ToList();
 
+        await AttachResidentNamesAsync(rows, static r => r.ResidentId, static (r, name) => r.ResidentName = name, ct);
         return Ok(rows);
     }
 
@@ -392,9 +489,22 @@ public class MlController : ControllerBase
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 25;
 
-        var asOfDate = string.IsNullOrWhiteSpace(asOf)
-            ? DateOnly.FromDateTime(DateTime.UtcNow)
-            : DateOnly.Parse(asOf);
+        DateOnly asOfDate;
+        if (!string.IsNullOrWhiteSpace(asOf))
+        {
+            asOfDate = DateOnly.Parse(asOf);
+        }
+        else
+        {
+            var maxDonationDate = await _context.Donations.AsNoTracking()
+                .Where(d => d.DonationDate != null)
+                .MaxAsync(d => d.DonationDate, ct);
+
+            if (!maxDonationDate.HasValue)
+                return Ok(Array.Empty<DonorHighValueScoreRow>());
+
+            asOfDate = new DateOnly(maxDonationDate.Value.Year, maxDonationDate.Value.Month, 1);
+        }
 
         var supporterIds = await _context.Supporters.AsNoTracking()
             .OrderBy(s => s.DisplayName)
@@ -441,6 +551,7 @@ public class MlController : ControllerBase
     public class EarlyWarningScoreRow
     {
         public int ResidentId { get; set; }
+        public string ResidentName { get; set; } = "";
         public double StruggleProbability { get; set; }
         public string? Error { get; set; }
     }
@@ -511,12 +622,14 @@ public class MlController : ControllerBase
             Error = s.Error,
         }).ToList();
 
+        await AttachResidentNamesAsync(rows, static r => r.ResidentId, static (r, name) => r.ResidentName = name, ct);
         return Ok(rows);
     }
 
     public class ReintegrationReadinessScoreRow
     {
         public int ResidentId { get; set; }
+        public string ResidentName { get; set; } = "";
         public double ReadinessProbability { get; set; }
         public string? Error { get; set; }
     }
@@ -587,6 +700,7 @@ public class MlController : ControllerBase
             Error = s.Error,
         }).ToList();
 
+        await AttachResidentNamesAsync(rows, static r => r.ResidentId, static (r, name) => r.ResidentName = name, ct);
         return Ok(rows);
     }
 

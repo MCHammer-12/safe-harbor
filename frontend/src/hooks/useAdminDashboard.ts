@@ -16,6 +16,7 @@ export interface AdminKpis {
   avgProgress: number;
   avgHealthScore: number;
   incidentCount: number;
+  reintegrationRate: number;
 }
 
 export interface AdminSafehouse {
@@ -63,6 +64,7 @@ const MOCK_KPIS: AdminKpis = {
   avgProgress: 74,
   avgHealthScore: 4.12,
   incidentCount: 4,
+  reintegrationRate: 42.5,
 };
 
 const MOCK_SAFEHOUSES: AdminSafehouse[] = [
