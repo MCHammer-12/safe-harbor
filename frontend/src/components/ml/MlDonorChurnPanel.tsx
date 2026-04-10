@@ -72,7 +72,7 @@ export default function MlDonorChurnPanel({ page: _page, pageSize: _pageSize, to
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-border text-muted-foreground uppercase text-xs tracking-wide">
-                <th className="py-2 pr-4">Supporter ID</th>
+                <th className="py-2 pr-4">Supporter</th>
                 <th className="py-2 pr-4">
                   Churn probability
                   <QuestionTooltip
@@ -99,7 +99,7 @@ export default function MlDonorChurnPanel({ page: _page, pageSize: _pageSize, to
             <tbody>
               {sortedRows.map((r) => (
                 <tr key={r.supporterId} className="border-b border-border/60">
-                  <td className="py-2 pr-4 font-mono">{r.supporterId}</td>
+                  <td className="py-2 pr-4">{r.displayName ?? r.supporterId}</td>
                   <td className="py-2 pr-4">
                     {r.error ? (
                       <span className="text-destructive text-xs">{r.error}</span>
